@@ -7,7 +7,7 @@ namespace Progression.ProgressTasks
     /// As steps complete, progress gets closer to 100%,
     /// but never actually reaches it until the task completes.
     /// </summary>
-    [DebuggerNonUserCode]
+    [DebuggerStepThrough]
     public class ProgressTaskUnknown : ProgressTask
     {
         /// <summary> </summary>
@@ -37,6 +37,11 @@ namespace Progression.ProgressTasks
             // Progressing through the unknown:
             float stepStart = this.stepIndex + stepProgress;
             return stepStart / (stepStart + UnknownFactor);
+        }
+
+        public override string ToString()
+        {
+            return base.ToString(string.Format("Step {0} of Unknown", stepIndex + 1));
         }
     }
 }

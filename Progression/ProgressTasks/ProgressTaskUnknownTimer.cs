@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace Progression.ProgressTasks
 {
-    [DebuggerNonUserCode]
+    [DebuggerStepThrough]
     public class ProgressTaskUnknownTimer : ProgressTaskUnknown
     {
         /// <summary>
@@ -44,14 +44,14 @@ namespace Progression.ProgressTasks
             base.NextStep();
         }
 
-        public override void Dispose()
+        public override void Dispose(bool completedSuccessfully)
         {
             // When we are finished, let's dispose the timer,
             // and set it to null to indicate that we're disposed.
             timer.Dispose();
             timer = null;
 
-            base.Dispose();
+            base.Dispose(completedSuccessfully);
         }
 
     }

@@ -8,14 +8,15 @@ namespace Progression.Tests
     [TestFixture]
     public class ProgressFixture
     {
-        private void DoNothing(object withNothing){}
+        [DebuggerStepThrough]
+        private void DoNothing(object withNothing) { }
 
         private float currentProgress;
         /// <summary> Asserts that the current progress matches the expected progress.
         /// Allows for a very small tolerance, due to possible floating-point errors.
         /// </summary>
         /// <param name="expected">The expected value of currentProgress, from 0.0 to 100.0.</param>
-        [DebuggerNonUserCode]
+        [DebuggerStepThrough]
         private void AssertCurrentProgress(float expected)
         {
             const float tolerance = 0.001f;
@@ -30,7 +31,7 @@ namespace Progression.Tests
         /// checks that the new progress is greater than the old progress,
         /// and checks that the new progress is less than 100%.
         /// </summary>
-        [DebuggerNonUserCode]
+        [DebuggerStepThrough]
         private void AssertProgressIsAlwaysGrowing(ProgressChangedInfo p)
         {
             var newProgress = p.TotalProgress * 100;
@@ -236,5 +237,44 @@ namespace Progression.Tests
             }
         }
 
+
+        [Test]
+        public void TestCallbackDepth()
+        {
+            var justFine = false;
+            ProgressChangedHandler callback = (p) =>{
+                                                  if (p.Any(pi => pi.TaskKey == "Too Deep!")) 
+                                                      Assert.Fail("'Too Deep!' invoked a callback!");
+                                                  if (p.Any(pi => pi.TaskKey == "Just fine"))
+                                                      justFine = true;
+                                              };
+
+            var items = new[]{1,2,3,4,5};
+
+            // Here, we set the callback with a maximum depth of 3:
+            foreach (var zero in items.WithProgress(callback, 3))
+            {
+                foreach (var one in items.WithProgress())
+                {
+                    foreach (var two in items.WithProgress())
+                    {
+                        // This progress is 3-deep, so it should work Just fine:
+                        foreach (var three in items.WithProgress("Just fine"))
+                        {
+                            // This progress is 4-deep, so it shouldn't fire the callback:
+                            foreach (var four in items.WithProgress("Too Deep!"))
+                            {
+                                DoNothing(four);       
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (justFine == false)
+            {
+                Assert.Fail("'Just fine' did not invoke a callback!");
+            }
+        }
     }
 }

@@ -5,7 +5,7 @@ namespace Progression.ProgressTasks
     /// <summary>
     /// Represents a task with a fixed number of steps.
     /// </summary>
-    [DebuggerNonUserCode]
+    [DebuggerStepThrough]
     public class ProgressTaskFixed : ProgressTask
     {
         public ProgressTaskFixed(int stepCount)
@@ -25,6 +25,10 @@ namespace Progression.ProgressTasks
             return (this.stepIndex + stepProgress) / this.StepCount;
         }
 
+        public override string ToString()
+        {
+            return base.ToString(string.Format("Step {0} of {1}", stepIndex + 1, StepCount));
+        }
     }
 
 }

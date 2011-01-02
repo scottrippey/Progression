@@ -4,7 +4,7 @@ using System.Diagnostics;
 
 namespace Progression.ProgressTasks
 {
-    [DebuggerNonUserCode]
+    [DebuggerStepThrough]
     public abstract class ProgressTask : IDisposable
     {
         [ThreadStatic] private static ProgressTask currentTask;
@@ -20,16 +20,30 @@ namespace Progression.ProgressTasks
             this.parent = currentTask;
             if (currentTask != null) currentTask.child = this;
             currentTask = this;
-            this.parentHasCallback = (parent != null && (parent.ProgressChanged != null || parent.parentHasCallback));
+            this.maximumCallbackDepth = (parent != null) ? parent.maximumCallbackDepth - 1 : -1;
         }
 
         /// <summary> Disposes this task, firing the 100% complete event if necessary, and pops the Progress stack.
         /// </summary>
-        public virtual void Dispose()
+        public void Dispose()
         {
-            if (ProgressChanged != null)
+            Dispose(true);
+        }
+        /// <summary> Disposes this task, firing the 100% complete event if necessary, and pops the Progress stack.
+        /// </summary>
+        /// <param name="completedSuccessfully">
+        /// Determines if the 100% complete event should be fired or skipped. Default is true.
+        /// </param>
+        /// <remarks>
+        /// Note that the 100% complete event does not "bubble" to parent tasks. 
+        /// It is only fired for the current task's callbacks.
+        /// This is to prevent duplicate 100% events.
+        /// </remarks>
+        public virtual void Dispose(bool completedSuccessfully)
+        {
+            // Report the 100% progress:
+            if (completedSuccessfully && ProgressChanged != null)
             {
-                // Report the 100% progress:
                 ProgressChanged(new ProgressChangedInfo(new ProgressInfo(1.0f, this.taskKey, this.taskArg)));
             }
 
@@ -55,8 +69,10 @@ namespace Progression.ProgressTasks
         private ProgressTask parent;
         /// <summary>The child field is used to traverse the progress stack when calculating progress for a specific task (polling).</summary>
         private ProgressTask child;
-        /// <summary>Stores whether any ancestor has a callback, and is used to optimize progress calculation events.</summary>
-        private bool parentHasCallback;
+        /// <summary> The maximum depth that this task's callback will listen </summary>
+        private int maximumCallbackDepth;
+        ///// <summary>Stores whether any ancestor has a callback, and is used to optimize progress calculation events.</summary>
+        //private bool parentHasCallback;
 
         /// <summary> The name of the task </summary>
         protected string taskKey;
@@ -65,7 +81,24 @@ namespace Progression.ProgressTasks
 
         /// <summary>The index of the currently executing step.</summary>
         protected int stepIndex;
-        
+
+        public override string ToString()
+        {
+            return ToString("Step " + (stepIndex+1));
+        }
+        protected string ToString(string stepName)
+        {
+            if (taskKey != null)
+            {
+                if (taskArg != null)
+                {
+                    return string.Format("{0} - \"{1}\" ({2})", stepName, taskKey, taskArg);
+                }
+                return string.Format("{0} - \"{1}\"", stepName, taskKey);
+            }
+            return string.Format("{0}", stepName);
+        }
+
         #endregion
 
         #region: Public Methods :
@@ -90,7 +123,21 @@ namespace Progression.ProgressTasks
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
         public void Update(ProgressChangedHandler callback)
         {
+            Update(callback, int.MaxValue);
+        }
+        /// <summary> Attaches a ProgressChanged callback to the current task.
+        /// This is usually done at the beginning of the task.
+        /// </summary>
+        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
+        /// <param name="maximumDepth">
+        /// The maximum depth that will activate the callback.
+        /// A value of 0 indicates that only this task will activate the callback.
+        /// Default is int.MaxValue.
+        /// </param>
+        public void Update(ProgressChangedHandler callback, int maximumDepth)
+        {
             this.ProgressChanged += callback;
+            this.maximumCallbackDepth = maximumDepth;
         }
 
         /// <summary> Advances the current progress task to the next step.
@@ -154,26 +201,29 @@ namespace Progression.ProgressTasks
             // Fire the ProgressChanged event for this and all parent items:
 
             var taskProgress = 0.0f;
+            var depth = 0;
             var allProgress = new Stack<ProgressInfo>();
 
             var task = this;
             while (task != null)
             {
+                if (task.maximumCallbackDepth < depth)
+                {
+                    break;
+                }
+
                 // Determine the current task's progress:
                 taskProgress = task.CalculateProgress(taskProgress);
                 allProgress.Push(new ProgressInfo(taskProgress, task.taskKey, task.taskArg));
 
-                // Raise the event if necessary:);
+                // Raise the event if necessary:
                 if (task.ProgressChanged != null)
                 {
-                    var progressArgs = new ProgressChangedInfo(allProgress.ToArray());
+                    var progressArgs = new ProgressChangedInfo(allProgress);
                     task.ProgressChanged(progressArgs);
                 }
-                if (!task.parentHasCallback)
-                {
-                    break; // No more callbacks
-                }
 
+                depth++;
                 task = task.parent;
             }
 
@@ -185,13 +235,27 @@ namespace Progression.ProgressTasks
         /// </summary>
         public ProgressChangedInfo CalculateProgress()
         {
+            return CalculateProgress(int.MaxValue);
+        }
+        /// <summary> Calculates the progress of the specified task.
+        /// This can be used to "poll" a task's progress.
+        /// This method is thread-safe.
+        /// </summary>
+        /// <param name="maximumDepth">
+        /// The maximum depth that will be used in the calculation.
+        /// A value of 0 indicates that only this task will be used.
+        /// Default is int.MaxValue.
+        /// </param>
+        public ProgressChangedInfo CalculateProgress(int maximumDepth)
+        {
             // Collect all tasks stacked on this baseTask:
             // (this part needs to be thread safe)
             var stack = new Stack<ProgressTask>();
             var task = this;
-            while (task != null)
+            while (task != null && maximumDepth >= 0)
             {
                 stack.Push(task);
+                maximumDepth--;
                 task = task.child; // Thread-safe?
             }
 
@@ -207,7 +271,7 @@ namespace Progression.ProgressTasks
                 allProgress.Push(new ProgressInfo(taskProgress, task.taskKey, task.taskArg));
             }
 
-            return new ProgressChangedInfo(allProgress.ToArray());
+            return new ProgressChangedInfo(allProgress);
         }
 
         #endregion

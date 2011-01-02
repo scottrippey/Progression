@@ -2,7 +2,7 @@
 
 namespace Progression.ProgressTasks
 {
-    [DebuggerNonUserCode]
+    [DebuggerStepThrough]
     public class ProgressTaskProportional : ProgressTask
     {
         public ProgressTaskProportional(float[] stepProportions)
@@ -46,6 +46,12 @@ namespace Progression.ProgressTasks
             float taskLength = this.Total;
             return (stepStart + stepProgress * stepLength) / taskLength;
         }
+
+        public override string ToString()
+        {
+            return base.ToString(string.Format("Step {0} of {1} (Completed {2:0.0} of {3:0.0})", stepIndex + 1, stepProportions.Length, Completed, Total));
+        }
+    
     }
 
 }

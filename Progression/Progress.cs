@@ -4,7 +4,7 @@ using Progression.ProgressTasks;
 
 namespace Progression
 {
-    [DebuggerNonUserCode]
+    [DebuggerStepThrough]
     public static class Progress 
     {
         #region: Static Interface :
@@ -67,30 +67,48 @@ namespace Progression
             return new ProgressTaskUnknownTimer(estimatedDuration, estimatedWeight, interval);
         }
 
+        private static ProgressTask CurrentTask
+        {
+            get
+            {
+                var currentTask = ProgressTask.CurrentTask;
+                if (currentTask == null) throw new InvalidOperationException("No Progress task has been started");
+                return currentTask;
+            }
+        }
+
         /// <summary> Ends and disposes the current task.
         /// Alternatively, you can put BeginTask in a "using" block
         /// which will automatically end the task.
         /// </summary>
         public static void EndTask()
         {
-            if (ProgressTask.CurrentTask == null) throw new InvalidOperationException("No Progress task has been started");
-            ProgressTask.CurrentTask.Dispose();
+            CurrentTask.Dispose();
+        }
+        /// <summary> Ends and disposes the current task.
+        /// Alternatively, you can put BeginTask in a "using" block
+        /// which will automatically end the task.
+        /// </summary>
+        /// <param name="completedSuccessfully">
+        /// Determines if the 100% complete event should be fired or skipped. Default is true.
+        /// </param>
+        public static void EndTask(bool completedSuccessfully)
+        {
+            CurrentTask.Dispose();
         }
         
         /// <summary> Changes the current task's TaskKey. </summary>
         /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
         public static void Update(string taskKey)
         {
-            if (ProgressTask.CurrentTask == null) throw new InvalidOperationException("No Progress task has been started");
-            ProgressTask.CurrentTask.Update(taskKey);
+            CurrentTask.Update(taskKey);
         }
         /// <summary> Changes the current task's TaskKey. </summary>
         /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
         /// <param name="taskArg">Provides additional info about the task being performed</param>
         public static void Update(string taskKey, object taskArg)
         {
-            if (ProgressTask.CurrentTask == null) throw new InvalidOperationException("No Progress task has been started");
-            ProgressTask.CurrentTask.Update(taskKey, taskArg);
+            CurrentTask.Update(taskKey, taskArg);
         }
         /// <summary> Attaches a ProgressChanged callback to the current task.
         /// This is usually done at the beginning of the task.
@@ -98,8 +116,20 @@ namespace Progression
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
         public static void Update(ProgressChangedHandler callback)
         {
-            if (ProgressTask.CurrentTask == null) throw new InvalidOperationException("No Progress task has been started");
-            ProgressTask.CurrentTask.Update(callback);
+            CurrentTask.Update(callback);
+        }
+        /// <summary> Attaches a ProgressChanged callback to the current task.
+        /// This is usually done at the beginning of the task.
+        /// </summary>
+        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
+        /// <param name="maximumDepth">
+        /// The maximum depth that will activate the callback.
+        /// A value of 0 indicates that only this task will activate the callback.
+        /// Default is int.MaxValue.
+        /// </param>
+        public static void Update(ProgressChangedHandler callback, int maximumDepth)
+        {
+            CurrentTask.Update(callback, maximumDepth);
         }
 
         /// <summary> Advances the current progress task to the next step.
@@ -107,8 +137,7 @@ namespace Progression
         /// </summary>
         public static void NextStep()
         {
-            if (ProgressTask.CurrentTask == null) throw new InvalidOperationException("No Progress task has been started");
-            ProgressTask.CurrentTask.NextStep();
+            CurrentTask.NextStep();
         }
         /// <summary> Sets the current task key, and advances the current progress task to the next step.
         /// Fires ProgressChanged events.
@@ -116,8 +145,7 @@ namespace Progression
         /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
         public static void NextStep(string taskKey)
         {
-            if (ProgressTask.CurrentTask == null) throw new InvalidOperationException("No Progress task has been started");
-            ProgressTask.CurrentTask.NextStep(taskKey);
+            CurrentTask.NextStep(taskKey);
         }
         /// <summary> Sets the current task key, and advances the current progress task to the next step.
         /// Fires ProgressChanged events.
@@ -126,8 +154,7 @@ namespace Progression
         /// <param name="taskArg">Provides additional info about the task being performed</param>
         public static void NextStep(string taskKey, object taskArg)
         {
-            if (ProgressTask.CurrentTask == null) throw new InvalidOperationException("No Progress task has been started");
-            ProgressTask.CurrentTask.NextStep(taskKey, taskArg);
+            CurrentTask.NextStep(taskKey, taskArg);
         }
 
     	#endregion
