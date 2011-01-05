@@ -32,11 +32,11 @@ namespace Progression.Tests
         /// and checks that the new progress is less than 100%.
         /// </summary>
         [DebuggerStepThrough]
-        private void AssertProgressIsAlwaysGrowing(ProgressChangedInfo p)
+        private void AssertProgressIsGrowing(ProgressChangedInfo p)
         {
             var newProgress = p.TotalProgress * 100;
             Console.WriteLine("{0:00.00}% (+{1:0.00}%) - \"{2}\"", newProgress, newProgress - currentProgress, p[0].TaskKey);
-            Assert.Greater(newProgress, currentProgress);
+            Assert.GreaterOrEqual(newProgress, currentProgress);
             Assert.LessOrEqual(newProgress, 100f, "Progress during an unknown progress should never exceed 100% but is {0:000.00}%", newProgress);
             currentProgress = newProgress;
         }
@@ -46,13 +46,14 @@ namespace Progression.Tests
         {
             currentProgress = -1f;
             // Normal for-loop:
-            using (Progress.BeginTask(10).UpdateTask(AssertProgressIsAlwaysGrowing))
+            using (Progress.BeginTask(10).UpdateTask(AssertProgressIsGrowing))
             {
                 for (int i = 0; i < 10; i++)
                 {
                     Progress.NextStep();
                     AssertCurrentProgress(0.0f + 10f*i);
                 }
+                Progress.EndTask();
             }
             AssertCurrentProgress(100f);
         }
@@ -62,7 +63,7 @@ namespace Progression.Tests
         {
             currentProgress = -1f;
             // Begin main task with 4 sections, each one taking longer:
-            using (Progress.BeginTask(new[] { 10f, 20f, 30f, 40f }).UpdateTask(AssertProgressIsAlwaysGrowing))
+            using (Progress.BeginTask(new[] { 10f, 20f, 30f, 40f }).UpdateTask(AssertProgressIsGrowing))
             {
                 Progress.NextStep(); // Advance the main task
                 // Normal for-loop:
@@ -102,8 +103,10 @@ namespace Progression.Tests
                         Progress.NextStep();
                         AssertCurrentProgress(60f + i);
                     }
+                    Progress.EndTask();
                 }
-                AssertCurrentProgress(99f);
+                AssertCurrentProgress(100f);
+                Progress.EndTask();
             }
             AssertCurrentProgress(100f);
 
@@ -113,26 +116,27 @@ namespace Progression.Tests
         public void TestNestedMethods()
         {
             currentProgress = -1f;
-            using (Progress.BeginTask(new[] { 10f, 20f, 550f }).UpdateTask(AssertProgressIsAlwaysGrowing))
+            using (Progress.BeginTask(new[] { 10f, 20f, 550f }).UpdateTask(AssertProgressIsGrowing))
             {
                 Progress.NextStep();
                 AssertCurrentProgress(0f);
 
                 Iterate10();
 
-                AssertCurrentProgress(100f*(9f/580f));
+                AssertCurrentProgress(100f*(10f/580f));
                 Progress.NextStep();
                 AssertCurrentProgress(100f*(10f/580f));
 
                 Iterate20();
 
-                AssertCurrentProgress(100f*(29f/580f));
+                AssertCurrentProgress(100f*(30f/580f));
                 Progress.NextStep();
                 AssertCurrentProgress(100f*(30f/580f));
                 
                 Iterate550();
 
-                AssertCurrentProgress(100f*(579f/580f));
+                AssertCurrentProgress(100f);
+                Progress.EndTask();
             }
             AssertCurrentProgress(100f);
         }
@@ -146,6 +150,7 @@ namespace Progression.Tests
                     Progress.NextStep();
                     DoNothing(i);
                 }
+                Progress.EndTask();
             }
         }
 
@@ -171,6 +176,7 @@ namespace Progression.Tests
                         Progress.NextStep();
                         DoNothing(i);
                     }
+                    Progress.EndTask();
                 }
             }
         }
@@ -179,7 +185,7 @@ namespace Progression.Tests
         public void TestUnknown()
         {
             currentProgress = -1f;
-            using (Progress.BeginTaskUnknown(100f, .75f).UpdateTask(AssertProgressIsAlwaysGrowing))
+            using (Progress.BeginTaskUnknown(100f, .75f).UpdateTask(AssertProgressIsGrowing))
             {
                 var count = 200; // Do way more than expected to make sure progress doesn't go over 100%.
                 Console.WriteLine("Performing {0} iterations", count);
@@ -195,6 +201,7 @@ namespace Progression.Tests
 
                 }
                 Console.WriteLine("Done ({0} total)", count);
+                Progress.EndTask();
             }
 
 
@@ -204,7 +211,7 @@ namespace Progression.Tests
         public void TestUnknownTimer()
         {
             currentProgress = -1f;
-            using (Progress.BeginTask(10f,80f,10f).UpdateTask(AssertProgressIsAlwaysGrowing))
+            using (Progress.BeginTask(10f,80f,10f).UpdateTask(AssertProgressIsGrowing))
             {
                 Progress.NextStep("Stall 1 second");
                 Progress.BeginTask(10);
@@ -222,6 +229,7 @@ namespace Progression.Tests
                 {
                     System.Threading.Thread.Sleep(8000);
                     System.Threading.Thread.Sleep(3000); // Take some extra time!
+                    Progress.EndTask();
                 }
 
 
@@ -233,7 +241,9 @@ namespace Progression.Tests
                         Progress.NextStep();
                         System.Threading.Thread.Sleep(100);
                     }
+                    Progress.EndTask();
                 }
+                Progress.EndTask();
             }
         }
 

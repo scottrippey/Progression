@@ -39,6 +39,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Extras\ETACalculator.cs" />
     <Compile Include="ProgressTasks\ProgressTask.cs" />
     <Compile Include="Progress.cs" />
     <Compile Include="ProgressExtensions.cs" />
@@ -52,6 +53,7 @@
   <ItemGroup>
     <None Include="app.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

@@ -36,7 +36,7 @@ namespace Progression
         /// <summary>
         /// The task on the top of the stack.  This is the task that caused the event.
         /// </summary>
-        public ProgressInfo CurrentTask { get { return this[Count]; } }
+        public ProgressInfo CurrentTask { get { return this[Count-1]; } }
     }
 
     [DebuggerNonUserCode]

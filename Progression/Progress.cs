@@ -4,7 +4,7 @@ using Progression.ProgressTasks;
 
 namespace Progression
 {
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     public static class Progress 
     {
         #region: Static Interface :
@@ -78,23 +78,10 @@ namespace Progression
         }
 
         /// <summary> Ends and disposes the current task.
-        /// Alternatively, you can put BeginTask in a "using" block
-        /// which will automatically end the task.
         /// </summary>
         public static void EndTask()
         {
-            CurrentTask.Dispose();
-        }
-        /// <summary> Ends and disposes the current task.
-        /// Alternatively, you can put BeginTask in a "using" block
-        /// which will automatically end the task.
-        /// </summary>
-        /// <param name="completedSuccessfully">
-        /// Determines if the 100% complete event should be fired or skipped. Default is true.
-        /// </param>
-        public static void EndTask(bool completedSuccessfully)
-        {
-            CurrentTask.Dispose();
+            CurrentTask.EndTask();
         }
         
         /// <summary> Changes the current task's TaskKey. </summary>

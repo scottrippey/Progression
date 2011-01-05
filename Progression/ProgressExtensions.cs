@@ -101,6 +101,7 @@ namespace Progression
                     Progress.NextStep();
                     yield return item;
                 }
+                Progress.EndTask();
             }
         }
 
@@ -131,6 +132,7 @@ namespace Progression
                     Progress.NextStep();
                     yield return item;
                 }
+                Progress.EndTask();
             }
         }
 
@@ -173,6 +175,7 @@ namespace Progression
                     Progress.NextStep();
                     yield return item;
                 }
+                Progress.EndTask();
             }
         }
 

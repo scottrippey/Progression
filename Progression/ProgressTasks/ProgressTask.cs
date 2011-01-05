@@ -4,14 +4,22 @@ using System.Diagnostics;
 
 namespace Progression.ProgressTasks
 {
-    [DebuggerStepThrough]
+    //[DebuggerStepThrough]
     public abstract class ProgressTask : IDisposable
     {
+        #region: ThreadStatic Stack :
+
         [ThreadStatic] private static ProgressTask currentTask;
+        /// <summary> Returns the top of the current thread's progress stack
+        /// </summary>
         public static ProgressTask CurrentTask { get { return currentTask; } }
 
-        #region: Constructors / IDisposable :
+        #endregion
 
+        #region: Constructor :
+
+        /// <summary> Pushes this Task to the top of the stack
+        /// </summary>
         protected ProgressTask()
         {
             this.stepIndex = -1; // Always start at -1
@@ -23,34 +31,44 @@ namespace Progression.ProgressTasks
             this.maximumCallbackDepth = (parent != null) ? parent.maximumCallbackDepth - 1 : -1;
         }
 
-        /// <summary> Disposes this task, firing the 100% complete event if necessary, and pops the Progress stack.
+        #endregion
+
+        #region: IDisposable / EndTask :
+
+        /// <summary> Ends this task unsuccessfully, 
+        /// meaning that the 100% complete event will not fire.
         /// </summary>
         public void Dispose()
         {
-            Dispose(true);
+            EndTask(false);
         }
-        /// <summary> Disposes this task, firing the 100% complete event if necessary, and pops the Progress stack.
+        /// <summary> Ends this task successfully,
+        /// meaning that the 100% complete event will fire.
+        /// This method should only be called once, and should only be called before the task is disposed.
         /// </summary>
-        /// <param name="completedSuccessfully">
-        /// Determines if the 100% complete event should be fired or skipped. Default is true.
-        /// </param>
-        /// <remarks>
-        /// Note that the 100% complete event does not "bubble" to parent tasks. 
-        /// It is only fired for the current task's callbacks.
-        /// This is to prevent duplicate 100% events.
-        /// </remarks>
-        public virtual void Dispose(bool completedSuccessfully)
+        public void EndTask()
         {
-            // Report the 100% progress:
-            if (completedSuccessfully && ProgressChanged != null)
-            {
-                ProgressChanged(new ProgressChangedInfo(new ProgressInfo(1.0f, this.taskKey, this.taskArg)));
-            }
+            EndTask(true);
+        }
+
+        /// <summary> Ends this task, firing the 100% complete event if necessary, and pops the Progress stack.
+        /// </summary>
+        /// <param name="completedSuccessfully"> 
+        /// Determines if the 100% complete event should be fired or skipped.
+        /// </param>
+        protected virtual void EndTask(bool completedSuccessfully)
+        {
+            // Only dispose once:
+            if (this.isEnded) return;
+            this.isEnded = true;
 
             // Make sure we are currently at the "top" of the stack:
-            if (currentTask != this)
+            if (currentTask != this) throw new InvalidOperationException("There is a different Progress Task still open!  To avoid this issue, place all \"Progress.BeginTask()\" calls in a \"using\" block, or be sure to call \"Progress.EndTask()\".");
+
+            // Report the 100% progress:
+            if (completedSuccessfully)
             {
-                throw new InvalidOperationException("There is a Progress task still open!  To avoid this issue, place all \"Progress.BeginTask()\" calls in a \"using\" block, or be sure to call \"Progress.EndTask()\".");
+                this.OnProgressChanged(1.0f);
             }
 
             // Pop the stack:
@@ -58,7 +76,7 @@ namespace Progression.ProgressTasks
             if (currentTask != null) currentTask.child = null;
 
             // Clear handlers:
-            ProgressChanged = null;
+            this.ProgressChanged = null;
         }
 
         #endregion
@@ -79,12 +97,19 @@ namespace Progression.ProgressTasks
         /// <summary> Provides additional info about the task being performed </summary>
         protected object taskArg;
 
-        /// <summary>The index of the currently executing step.</summary>
+        /// <summary> The index of the currently executing step </summary>
         protected int stepIndex;
+
+        /// <summary> Indicates that this task has ended and is disposed </summary>
+        protected bool isEnded = false;
+        
+        #endregion
+
+        #region: ToString :
 
         public override string ToString()
         {
-            return ToString("Step " + (stepIndex+1));
+            return ToString("Step " + (stepIndex + 1));
         }
         protected string ToString(string stepName)
         {
@@ -101,7 +126,7 @@ namespace Progression.ProgressTasks
 
         #endregion
 
-        #region: Public Methods :
+        #region: Update Methods :
 
         /// <summary> Changes the current task's TaskKey. </summary>
         /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
@@ -140,6 +165,10 @@ namespace Progression.ProgressTasks
             this.maximumCallbackDepth = maximumDepth;
         }
 
+        #endregion
+
+        #region: NextStep Methods :
+
         /// <summary> Advances the current progress task to the next step.
         /// Fires ProgressChanged events.
         /// </summary>
@@ -160,11 +189,6 @@ namespace Progression.ProgressTasks
             this.taskArg = newTaskArg;
             NextStep();
         }
-
-        #endregion
-
-        #region: Virtual / Abstract Methods :
-
         /// <summary> Advances the current progress task to the next step.
         /// Fires ProgressChanged events.
         /// </summary>
@@ -174,46 +198,37 @@ namespace Progression.ProgressTasks
             this.stepIndex++;
 
             // Fire the ProgressChanged event:
-            OnProgressChanged();
+            var myProgress = CalculateProgress(0.0f);
+            OnProgressChanged(myProgress);
         }
-
-        /// <summary> Calculates the progress of this task. </summary>
-        /// <param name="stepProgress">The progress of nested steps</param>
-        protected abstract float CalculateProgress(float stepProgress);
-
+        
         #endregion
 
         #region: Progress Calculation :
 
+        /// <summary> Calculates the progress of this task. </summary>
+        /// <param name="stepProgress">The progress of nested steps</param>
+        protected abstract float CalculateProgress(float stepProgress);
+        
         private event ProgressChangedHandler ProgressChanged;
-        /// <summary> Fires ProgressChanged events for the current and all parents
+        /// <summary> Fires ProgressChanged events for the current task and all parent tasks
         /// </summary>
-        protected void OnProgressChanged()
+        protected void OnProgressChanged(float myProgress)
         {
-            if (this.stepIndex == 0)
-            {
-                // Fire the 0% event for ONLY this item (not parents)
-                if (this.ProgressChanged != null)
-                    this.ProgressChanged(new ProgressChangedInfo(new ProgressInfo(0f, this.taskKey, this.taskArg)));
-                return;
-            }
-
             // Fire the ProgressChanged event for this and all parent items:
 
-            var taskProgress = 0.0f;
+            var taskProgress = myProgress;
             var depth = 0;
             var allProgress = new Stack<ProgressInfo>();
 
             var task = this;
-            while (task != null)
+            while (true)
             {
                 if (task.maximumCallbackDepth < depth)
                 {
                     break;
                 }
 
-                // Determine the current task's progress:
-                taskProgress = task.CalculateProgress(taskProgress);
                 allProgress.Push(new ProgressInfo(taskProgress, task.taskKey, task.taskArg));
 
                 // Raise the event if necessary:
@@ -223,8 +238,18 @@ namespace Progression.ProgressTasks
                     task.ProgressChanged(progressArgs);
                 }
 
+                // Traverse the progress stack:
                 depth++;
                 task = task.parent;
+
+                // Determine if we've reached the bottom of the stack:
+                if (task == null)
+                {
+                    break;
+                }
+
+                // Calculate the parent task's progress:
+                taskProgress = task.CalculateProgress(taskProgress);
             }
 
         }
@@ -248,6 +273,8 @@ namespace Progression.ProgressTasks
         /// </param>
         public ProgressChangedInfo CalculateProgress(int maximumDepth)
         {
+            if (maximumDepth <= 0) throw new ArgumentException("maximumDepth must be at least 1", "maximumDepth");
+
             // Collect all tasks stacked on this baseTask:
             // (this part needs to be thread safe)
             var stack = new Stack<ProgressTask>();
