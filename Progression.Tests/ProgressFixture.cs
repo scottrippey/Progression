@@ -41,6 +41,16 @@ namespace Progression.Tests
             currentProgress = newProgress;
         }
 
+
+        private int[] tenItems
+        {
+            get
+            {
+                return new[]{1,2,3,4,5,6,7,8,9,10};
+            }
+        }
+
+
         [Test]
         public void TestNormal()
         {
@@ -286,5 +296,35 @@ namespace Progression.Tests
                 Assert.Fail("'Just fine' did not invoke a callback!");
             }
         }
+
+
+        [Test]
+        public void Test_ProgressWithError()
+        {
+            try
+            {
+                currentProgress = -1;
+                foreach (var i in tenItems.WithProgress(AssertProgressIsGrowing))
+                {
+                    foreach (var j in tenItems.WithProgress())
+                    {
+                        if (i == 5 && j == 5)
+                        {
+                            AssertCurrentProgress(44f);
+                            // Throw an error in the middle of this task:
+                            throw new OperationCanceledException("Die Progress Die!");
+                        }
+                    }
+                }
+                Assert.Fail("Code shouldn't get to this point.");
+            }
+            catch (OperationCanceledException)
+            {
+                // Make sure the current progress hasn't changed since the error:
+                AssertCurrentProgress(44f);
+            }
+
+        }
+    
     }
 }
