@@ -36,9 +36,9 @@ namespace Progression.Demo
             this.isExiting = true;
         }
 
-        private ETACalculator eta1 = new ETACalculator(5,100);
-        private ETACalculator eta2 = new ETACalculator(5,20);
-        private ETACalculator eta3 = new ETACalculator(2,2);
+        private ETACalculator eta1 = new ETACalculator(2,3.0);
+        private ETACalculator eta2 = new ETACalculator(2,3.0);
+        private ETACalculator eta3 = new ETACalculator(2,3.0);
 
         public void ProgressChanged(ProgressChangedInfo p)
         {

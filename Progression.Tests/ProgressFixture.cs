@@ -325,6 +325,39 @@ namespace Progression.Tests
             }
 
         }
+
     
+        [Test]
+        public void Test_OpenProgressWithError()
+        {
+            currentProgress = -1;
+            using (Progress.BeginTask(5).UpdateTask(AssertProgressIsGrowing))
+            {
+                Progress.NextStep();
+
+                try
+                {
+
+                    Progress.BeginTask(5);
+                    Progress.NextStep();
+
+                    Progress.BeginTask(5);
+                    Progress.NextStep();
+
+                    throw new Exception("What happens if we don't use \"using\" blocks and we forget to call EndTask?");
+
+                    Progress.EndTask();
+                    Progress.EndTask();
+                    Progress.EndTask();
+                }
+                catch (Exception)
+                {
+                }
+            }
+            
+            // Make sure the progress tasks are all disposed:
+            Assert.IsNull(ProgressTasks.ProgressTask.CurrentTask);
+        }
+
     }
 }

@@ -15,20 +15,23 @@ namespace Progression.Extras
     public class ETACalculator 
     {
         /// <summary>
-        /// 
         /// </summary>
-        /// <param name="minimumSize"></param>
-        /// <param name="maximumSize"></param>
-        public ETACalculator(int minimumSize, int maximumSize)
+        /// <param name="minimumData">
+        /// The minimum number of data points required before ETA can be calculated.
+        /// </param>
+        /// <param name="maximumDuration">
+        /// Determines how much calculation data can be stored.
+        /// </param>
+        public ETACalculator(int minimumData, double maximumDuration)
         {
-            this.minimumSize = minimumSize;
-            this.maximumSize = maximumSize;
-            this.queue = new Queue<ProgressItem>(maximumSize);
+            this.minimumData = minimumData;
+            this.maximumTicks = (long)(maximumDuration * Stopwatch.Frequency);
+            this.queue = new Queue<ProgressItem>(minimumData * 2);
             this.timer = Stopwatch.StartNew();
         }
 
-        private int minimumSize;
-        private int maximumSize;
+        private int minimumData;
+        private long maximumTicks;
         private readonly Stopwatch timer;
         private readonly Queue<ProgressItem> queue;
 
@@ -43,6 +46,15 @@ namespace Progression.Extras
             timer.Start();
         }
 
+        private void ClearExpired()
+        {
+            var expired = timer.ElapsedTicks - this.maximumTicks;
+            while (queue.Count > this.minimumData && queue.Peek().Key < expired)
+            {
+                this.oldest = queue.Dequeue();
+            }
+        }
+
         /// <summary> Adds the current progress to the calculation of ETA.
         /// </summary>
         /// <param name="progress">The current level of completion.
@@ -50,16 +62,14 @@ namespace Progression.Extras
         public void Add(float progress)
         {
             // Clear space for this item:
-            while (queue.Count >= this.maximumSize)
-            {
-                this.oldest = queue.Dequeue();
-            }
+            ClearExpired();
 
             // Queue this item:
             long currentTicks = timer.ElapsedTicks;
             this.current = new ProgressItem(currentTicks, progress);
             this.queue.Enqueue(this.current);
 
+            // See if its the first item:
             if (this.queue.Count == 1)
             {
                 this.oldest = this.current;
@@ -78,7 +88,7 @@ namespace Progression.Extras
                 var current = this.current;
 
                 // Make sure we have enough items:
-                if (queue.Count < this.minimumSize || oldest.Value == current.Value)
+                if (queue.Count < this.minimumData || oldest.Value == current.Value)
                 {
                     return TimeSpan.MaxValue;
                 }
@@ -108,11 +118,7 @@ namespace Progression.Extras
             get
             {
                 // Make sure we have enough items:
-                if (queue.Count < this.minimumSize || oldest.Value == current.Value)
-                {
-                    return false;
-                }
-                return true;
+                return (queue.Count >= this.minimumData && oldest.Value != current.Value);
             }
         }
 

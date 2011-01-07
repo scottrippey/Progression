@@ -28,6 +28,7 @@ namespace Progression.ProgressTasks
             this.parent = currentTask;
             if (currentTask != null) currentTask.child = this;
             currentTask = this;
+
             this.maximumCallbackDepth = (parent != null) ? parent.maximumCallbackDepth - 1 : -1;
         }
 
@@ -62,21 +63,39 @@ namespace Progression.ProgressTasks
             if (this.isEnded) return;
             this.isEnded = true;
 
-            // Make sure we are currently at the "top" of the stack:
-            if (currentTask != this) throw new InvalidOperationException("There is a different Progress Task still open!  To avoid this issue, place all \"Progress.BeginTask()\" calls in a \"using\" block, or be sure to call \"Progress.EndTask()\".");
+            // Tasks should always be disposed, so there 
+            // shouldn't be any open "child" tasks,
+            // but just in case, let's clean them up:
+            if (this.child != null)
+            {
+                this.child.Dispose();
+                this.child = null;
+            }
 
             // Report the 100% progress:
             if (completedSuccessfully)
             {
                 this.OnProgressChanged(1.0f);
             }
-
-            // Pop the stack:
-            currentTask = this.parent;
-            if (currentTask != null) currentTask.child = null;
-
             // Clear handlers:
             this.ProgressChanged = null;
+
+            // Make sure "this" is on the top of the stack:
+            if (currentTask == this)
+            {
+                // Pop the stack:
+                currentTask = this.parent;
+                if (currentTask != null) currentTask.child = null;
+            } 
+            else
+            {
+                // The only way this task wouldn't be on top of the stack
+                // is if dispose is being called by a different thread.
+                // Who would do such a thing?!?
+                throw new InvalidOperationException("ProgressTask disposed by a thread other than the one that created it.");
+            }
+
+
         }
 
         #endregion
