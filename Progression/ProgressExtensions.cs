@@ -146,6 +146,7 @@ namespace Progression
         /// <summary> Attaches the callback to fire when progress is reported.
         /// 
         /// This is usually called at the beginning of the task.
+        /// Returns the current progress task, so that methods may be chained.
         /// </summary>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
         public ProgressEnumerator<T> SetCallback(ProgressChangedHandler callback)
@@ -156,6 +157,7 @@ namespace Progression
         /// <summary> Attaches the callback to fire when progress is reported.
         /// 
         /// This is usually called at the beginning of the task.
+        /// Returns the current progress task, so that methods may be chained.
         /// </summary>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
         /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
@@ -164,14 +166,18 @@ namespace Progression
             progress.SetCallback(callback, maxDepth);
             return this;
         }
-        /// <summary> Changes the current task's TaskKey. </summary>
+        /// <summary> Changes the current task's TaskKey. 
+        /// Returns the current progress task, so that methods may be chained.
+        /// </summary>
         /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
         public ProgressEnumerator<T> SetTaskKey(string newTaskKey)
         {
             progress.SetTaskKey(newTaskKey);
             return this;
         }
-        /// <summary> Changes the current task's TaskKey. </summary>
+        /// <summary> Changes the current task's TaskKey. 
+        /// Returns the current progress task, so that methods may be chained.
+        /// </summary>
         /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
         /// <param name="newTaskArg">Provides additional info about the task being performed</param>
         public ProgressEnumerator<T> SetTaskKey(string newTaskKey, object newTaskArg)
@@ -179,7 +185,9 @@ namespace Progression
             progress.SetTaskKey(newTaskKey, newTaskArg);
             return this;
         }
-        /// <summary> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </summary>
+        /// <summary> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". 
+        /// Returns the current progress task, so that methods may be chained.
+        /// </summary>
         /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
         public ProgressEnumerator<T> SetMaxDepth(ProgressDepth maxDepth)
         {

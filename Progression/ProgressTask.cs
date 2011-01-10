@@ -16,91 +16,6 @@ namespace Progression
 
         #endregion
 
-        #region: Chainable Methods :
-
-        // SetTaskKey methods:
-
-        /// <summary> Attaches the callback to fire when progress is reported.
-        /// 
-        /// This is usually called at the beginning of the task.
-        /// </summary>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        public ProgressTask SetCallback(ProgressChangedHandler callback)
-        {
-            this.progressChanged += callback;
-            this.maximumDepth = ProgressDepth.Unlimited;
-            return this;
-        }
-        /// <summary> Attaches the callback to fire when progress is reported.
-        /// 
-        /// This is usually called at the beginning of the task.
-        /// </summary>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
-        public ProgressTask SetCallback(ProgressChangedHandler callback, ProgressDepth maxDepth)
-        {
-            this.progressChanged += callback;
-            this.maximumDepth = maxDepth;
-            return this;
-        }
-        
-        /// <summary> Changes the current task's TaskKey. </summary>
-        /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        public ProgressTask SetTaskKey(string newTaskKey)
-        {
-            this.taskKey = newTaskKey;
-            return this;
-        }
-        /// <summary> Changes the current task's TaskKey. </summary>
-        /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        /// <param name="newTaskArg">Provides additional info about the task being performed</param>
-        public ProgressTask SetTaskKey(string newTaskKey, object newTaskArg)
-        {
-            this.taskKey = newTaskKey;
-            this.taskArg = newTaskArg;
-            return this;
-        }
-
-        /// <summary> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </summary>
-        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
-        public ProgressTask SetMaxDepth(ProgressDepth maxDepth)
-        {
-            this.maximumDepth = maxDepth;
-            return this;
-        }
-
-        // NextStep methods:
-
-        /// <summary> Advances the current progress task to the next step.
-        /// Fires ProgressChanged events.
-        /// </summary>
-        public void NextStep()
-        {
-            // Advance the current step:
-            this.calculator.NextStep();
-
-            // Fire the ProgressChanged event:
-            this.SetCallback();
-        }
-        /// <summary> Advances the current progress task to the next step.
-        /// Fires ProgressChanged events.
-        /// 
-        /// This is useful for ProgressCalculators that require custom NextStep behavior,
-        /// such as the ProgressAmount calculator.
-        /// </summary>
-        public void NextStep<TCalc>(Action<TCalc> nextStep) where TCalc : class, IProgressCalculator
-        {
-            // Advance the current step:
-            nextStep(this.calculator as TCalc);
-
-            // Fire the ProgressChanged event:
-            this.SetCallback();
-        }
-        
-        #endregion
-
-
-
         #region: Fields :
 		
         /// <summary>The parent field is used to implement a self-maintained stack.</summary>
@@ -128,7 +43,7 @@ namespace Progression
 
         #endregion
 
-        #region: Constructors :
+        #region: Constructor :
 
         /// <summary> Pushes a new task to the top of the stack.
         /// </summary>
@@ -155,105 +70,107 @@ namespace Progression
 
         #endregion
 
-        #region: Dispose / EndTask :
+        #region: Chainable Methods :
 
-        /// <summary> Ends this task unsuccessfully, 
-        /// meaning that the 100% complete event will not fire.
-        /// Call Progress.EndTask() to successfully end this task with 100% progress.
+        /// <summary> Attaches the callback to fire when progress is reported.
+        /// 
+        /// This is usually called at the beginning of the task.
+        /// Returns the current progress task, so that methods may be chained.
         /// </summary>
-        public void Dispose()
+        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
+        public ProgressTask SetCallback(ProgressChangedHandler callback)
         {
-            EndTask(false);
+            this.progressChanged += callback;
+            this.maximumDepth = ProgressDepth.Unlimited;
+            return this;
+        }
+        /// <summary> Attaches the callback to fire when progress is reported.
+        /// 
+        /// This is usually called at the beginning of the task.
+        /// Returns the current progress task, so that methods may be chained.
+        /// </summary>
+        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
+        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
+        public ProgressTask SetCallback(ProgressChangedHandler callback, ProgressDepth maxDepth)
+        {
+            this.progressChanged += callback;
+            this.maximumDepth = maxDepth;
+            return this;
         }
 
-        /// <summary> Ends this task successfully,
-        /// meaning that the 100% complete event will fire.
-        /// This should be called before the task is disposed.
+        /// <summary> Changes the current task's TaskKey. 
+        /// Returns the current progress task, so that methods may be chained.
         /// </summary>
-        public void EndTask()
+        /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
+        public ProgressTask SetTaskKey(string newTaskKey)
         {
-            this.EndTask(true);
+            this.taskKey = newTaskKey;
+            return this;
+        }
+        /// <summary> Changes the current task's TaskKey. 
+        /// Returns the current progress task, so that methods may be chained.
+        /// </summary>
+        /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
+        /// <param name="newTaskArg">Provides additional info about the task being performed</param>
+        public ProgressTask SetTaskKey(string newTaskKey, object newTaskArg)
+        {
+            this.taskKey = newTaskKey;
+            this.taskArg = newTaskArg;
+            return this;
         }
 
-        
-        /// <summary> Ends this task, firing the 100% complete event if necessary, and pops the Progress stack.
+        /// <summary> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". 
+        /// Returns the current progress task, so that methods may be chained.
         /// </summary>
-        /// <param name="completedSuccessfully"> 
-        /// Determines if the 100% complete event should be fired or skipped.
-        /// </param>
-        private void EndTask(bool completedSuccessfully)
+        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
+        public ProgressTask SetMaxDepth(ProgressDepth maxDepth)
         {
-            // Only dispose once:
-            if (this.isEnded) return;
-            this.isEnded = true;
-
-            // Tasks should always be disposed, so there 
-            // shouldn't be any open "child" tasks,
-            // but just in case, let's clean them up:
-            if (this.child != null)
-            {
-                this.child.EndTask(false);
-                this.child = null;
-            }
-
-            // Report the 100% progress:
-            if (completedSuccessfully && this.maximumDepth > 0)
-            {
-                this.SetCallback();
-            }
-
-            // Clear handlers:
-            this.progressChanged = null;
-            // Clear calculator:
-            var calcDispose = this.calculator as IDisposable;
-            if (calcDispose != null) calcDispose.Dispose();
-            this.calculator = null;
-
-            // Make sure "this" is on the top of the stack:
-            if (currentTask == this)
-            {
-                // Pop the stack:
-                currentTask = this.parent;
-                if (currentTask != null) currentTask.child = null;
-            } 
-            else
-            {
-                // The only way this task wouldn't be on top of the stack
-                // is if dispose is being called by a different thread.
-                // Who would do such a thing?!?
-                throw new InvalidOperationException("Progress disposed by a thread other than the one that created it.");
-            }
-
-
+            this.maximumDepth = maxDepth;
+            return this;
         }
 
         #endregion
 
-        #region: ToString :
+        #region: NextStep :
 
-        public override string ToString()
+        /// <summary> Advances the current progress task to the next step.
+        /// Fires ProgressChanged events.
+        /// </summary>
+        public void NextStep()
         {
-            var stepName = (this.calculator == null) ? "(Progress Ignored)" : this.calculator.ToString();
-            if (taskKey != null)
-            {
-                if (taskArg != null)
-                {
-                    return string.Format("{0} - \"{1}\" ({2})", stepName, taskKey, taskArg);
-                }
-                return string.Format("{0} - \"{1}\"", stepName, taskKey);
-            }
-            return string.Format("{0}", stepName);
+            // Advance the current step:
+            this.calculator.NextStep();
+
+            // Fire the ProgressChanged event:
+            this.OnProgressChanged();
+        }
+        /// <summary> Advances the current progress task to the next step.
+        /// Fires ProgressChanged events.
+        /// 
+        /// This is useful for ProgressCalculators that require custom NextStep behavior,
+        /// such as the ProgressAmount calculator.
+        /// </summary>
+        public void NextStep<TCalc>(Action<TCalc> nextStep) where TCalc : class, IProgressCalculator
+        {
+            // Advance the current step:
+            nextStep(this.calculator as TCalc);
+
+            // Fire the ProgressChanged event:
+            this.OnProgressChanged();
         }
 
         #endregion
 
         #region: Progress Calculation :
-        
+
         /// <summary> Fires ProgressChanged events for the current task and all parent tasks
         /// </summary>
-        private void SetCallback()
+        private void OnProgressChanged()
         {
             // Fire the ProgressChanged event for this and all parent items:
+
+            // (Skip if the current depth is too deep)
+            if (this.maximumDepth <= ProgressDepth.Auto) return;
 
             var taskProgress = 0.0f;
             ProgressDepth depth = 0;
@@ -300,7 +217,7 @@ namespace Progression
 
             // Collect all tasks stacked on this baseTask:
             // (this part needs to be thread safe)
-            var stack = new Stack<ProgressTask>((depth <= 0)? 1 : (int)depth);
+            var stack = new Stack<ProgressTask>((depth <= 0) ? 1 : (int)depth);
             var task = this;
             while (task != null && depth >= 0)
             {
@@ -322,6 +239,97 @@ namespace Progression
             }
 
             return new ProgressChangedInfo(allProgress);
+        }
+
+        #endregion
+
+        #region: Dispose / EndTask :
+
+        /// <summary> Ends this task unsuccessfully, 
+        /// meaning that the 100% complete event will not fire.
+        /// Call Progress.EndTask() to successfully end this task with 100% progress.
+        /// </summary>
+        public void Dispose()
+        {
+            EndTask(false);
+        }
+
+        /// <summary> Ends this task successfully,
+        /// meaning that the 100% complete event will fire.
+        /// This should be called before the task is disposed.
+        /// </summary>
+        public void EndTask()
+        {
+            this.EndTask(true);
+        }
+        
+        /// <summary> Ends this task, firing the 100% complete event if necessary, and pops the Progress stack.
+        /// </summary>
+        /// <param name="completedSuccessfully"> 
+        /// Determines if the 100% complete event should be fired or skipped.
+        /// </param>
+        private void EndTask(bool completedSuccessfully)
+        {
+            // Only dispose once:
+            if (this.isEnded) return;
+            this.isEnded = true;
+
+            // Tasks should always be disposed, so there 
+            // shouldn't be any open "child" tasks,
+            // but just in case, let's clean them up:
+            if (this.child != null)
+            {
+                this.child.EndTask(false);
+                this.child = null;
+            }
+
+            // Report the 100% progress:
+            if (completedSuccessfully && this.maximumDepth > 0)
+            {
+                this.OnProgressChanged();
+            }
+
+            // Clear handlers:
+            this.progressChanged = null;
+            // Clear calculator:
+            var calcDispose = this.calculator as IDisposable;
+            if (calcDispose != null) calcDispose.Dispose();
+            this.calculator = null;
+
+            // Make sure "this" is on the top of the stack:
+            if (currentTask == this)
+            {
+                // Pop the stack:
+                currentTask = this.parent;
+                if (currentTask != null) currentTask.child = null;
+            } 
+            else
+            {
+                // The only way this task wouldn't be on top of the stack
+                // is if dispose is being called by a different thread.
+                // Who would do such a thing?!?
+                throw new InvalidOperationException("Progress disposed by a thread other than the one that created it.");
+            }
+
+
+        }
+
+        #endregion
+
+        #region: ToString :
+
+        public override string ToString()
+        {
+            var stepName = (this.calculator == null) ? "(Progress Ignored)" : this.calculator.ToString();
+            if (taskKey != null)
+            {
+                if (taskArg != null)
+                {
+                    return string.Format("{0} - \"{1}\" ({2})", stepName, taskKey, taskArg);
+                }
+                return string.Format("{0} - \"{1}\"", stepName, taskKey);
+            }
+            return string.Format("{0}", stepName);
         }
 
         #endregion
