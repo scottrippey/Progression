@@ -1,20 +1,44 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
-using Progression.ProgressTasks;
+using Progression.ProgressCalculators;
 
 namespace Progression
 {
     //[DebuggerStepThrough]
     public static class Progress 
     {
-        #region: Static Interface :
+        #region: MyRegion :
 
+        private static ProgressTask CurrentTask
+        {
+            get
+            {
+                var currentTask = ProgressTask.CurrentTask;
+                if (currentTask == null) throw new InvalidOperationException("No Progress task has been started");
+                return currentTask;
+            }
+        }
+
+        #endregion
+
+        #region: Public Static Methods :
+
+        // Factory methods:
+
+        /// <summary> Starts a task using a custom progress calculator. </summary>
+        /// <param name="calculator">Any custom progress calculator</param>
+        /// <returns>Returns an object that ends the task when it is disposed.</returns>
+        public static ProgressTask BeginTask(IProgressCalculator calculator)
+        {
+            return new ProgressTask(calculator);
+        }
         /// <summary> Starts a task with a specific number of steps. </summary>
         /// <param name="steps">The number of steps to be performed.</param>
         /// <returns>Returns an object that ends the task when it is disposed.</returns>
-        public static ProgressTaskFixed BeginTask(int steps)
+        public static ProgressTask BeginTaskFixed(int steps)
         {
-            return new ProgressTaskFixed(steps);
+            return new ProgressTask(new ProgressCalcFixed(steps));
         }
         /// <summary> Starts a task with a specific number of steps.
         /// Progress is calculated proportionally for each step.
@@ -22,9 +46,9 @@ namespace Progression
         /// <param name="stepProportions">The proportion of each step.
         /// For example, if you specify 4,6,10 then the steps will progress 20%,30%, and 50%.</param>
         /// <returns>Returns an object that ends the task when it is disposed.</returns>
-        public static ProgressTaskProportional BeginTask(params float[] stepProportions)
+        public static ProgressTask BeginTaskProportional(params float[] stepProportions)
         {
-            return new ProgressTaskProportional(stepProportions);
+            return new ProgressTask(new ProgressCalcProportional(stepProportions));
         }
         /// <summary> Starts a task with an unknown number of steps.
         /// As tasks complete, the progress will get nearer completion,
@@ -42,82 +66,39 @@ namespace Progression
         /// This value cannot equal 0.0 or 1.0.
         /// </param>
         /// <returns>Returns an object that ends the task when it is disposed.</returns>
-        public static ProgressTaskUnknown BeginTaskUnknown(float estimatedSteps, float estimatedWeight)
+        public static ProgressTask BeginTaskUnknown(int estimatedSteps, float estimatedWeight)
         {
-            return new ProgressTaskUnknown(estimatedSteps, estimatedWeight);
-        }
-        /// <summary> Starts an enhanced version of ProgressUnknown.
-        /// Instead of waiting for sub-tasks to report progress,
-        /// this task uses a timer to automatically report progress.
-        /// As time ticks, progress gets closer to 100%, but never reaches it.
-        /// 
-        /// Note that ProgressChanged events will fire on a different thread!
-        /// </summary>
-        /// <param name="estimatedDuration">The estimated duration of this task, in seconds</param>
-        /// <param name="estimatedWeight">
-        /// A value between 0.0 and 1.0 that determines how much weight to place on the estimatedDuration.
-        /// For example, if estimatedDuration is 100 and estimatedWeight is .75,
-        /// then when 100 seconds have completed, progress will be at 75%.
-        /// 
-        /// This value cannot equal 0.0 or 1.0.
-        /// </param>
-        /// <param name="interval">The rate at which to update the progress, in milliseconds</param>
-        public static ProgressTaskUnknownTimer BeginTaskUnknown(float estimatedDuration, float estimatedWeight, int interval)
-        {
-            return new ProgressTaskUnknownTimer(estimatedDuration, estimatedWeight, interval);
+            return new ProgressTask(new ProgressCalcUnknown(estimatedSteps, estimatedWeight));
         }
 
-        private static ProgressTask CurrentTask
-        {
-            get
-            {
-                var currentTask = ProgressTask.CurrentTask;
-                if (currentTask == null) throw new InvalidOperationException("No Progress task has been started");
-                return currentTask;
-            }
-        }
+        // UpdateTaskKey methods:
 
-        /// <summary> Ends and disposes the current task.
+        /// <summary> Attaches the callback to fire when progress is reported.
+        /// 
+        /// This is usually called at the beginning of the task.
         /// </summary>
-        public static void EndTask()
+        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
+        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
+        public static ProgressTask OnProgressChanged(ProgressChangedHandler callback, ProgressDepth maxDepth)
         {
-            CurrentTask.EndTask();
+            return CurrentTask.OnProgressChanged(callback, maxDepth);
         }
         
         /// <summary> Changes the current task's TaskKey. </summary>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        public static void Update(string taskKey)
+        /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
+        public static ProgressTask UpdateTaskKey(string newTaskKey)
         {
-            CurrentTask.Update(taskKey);
+            return CurrentTask.UpdateTaskKey(newTaskKey);
         }
         /// <summary> Changes the current task's TaskKey. </summary>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        /// <param name="taskArg">Provides additional info about the task being performed</param>
-        public static void Update(string taskKey, object taskArg)
+        /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
+        /// <param name="newTaskArg">Provides additional info about the task being performed</param>
+        public static ProgressTask UpdateTaskKey(string newTaskKey, object newTaskArg)
         {
-            CurrentTask.Update(taskKey, taskArg);
+            return CurrentTask.UpdateTaskKey(newTaskKey, newTaskArg);
         }
-        /// <summary> Attaches a ProgressChanged callback to the current task.
-        /// This is usually done at the beginning of the task.
-        /// </summary>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        public static void Update(ProgressChangedHandler callback)
-        {
-            CurrentTask.Update(callback);
-        }
-        /// <summary> Attaches a ProgressChanged callback to the current task.
-        /// This is usually done at the beginning of the task.
-        /// </summary>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maximumDepth">
-        /// The maximum depth that will activate the callback.
-        /// A value of 0 indicates that only this task will activate the callback.
-        /// Default is int.MaxValue.
-        /// </param>
-        public static void Update(ProgressChangedHandler callback, int maximumDepth)
-        {
-            CurrentTask.Update(callback, maximumDepth);
-        }
+
+        // NextStep methods:
 
         /// <summary> Advances the current progress task to the next step.
         /// Fires ProgressChanged events.
@@ -126,24 +107,29 @@ namespace Progression
         {
             CurrentTask.NextStep();
         }
-        /// <summary> Sets the current task key, and advances the current progress task to the next step.
+        /// <summary> Advances the current progress task to the next step.
         /// Fires ProgressChanged events.
+        /// 
+        /// This is useful for ProgressCalculators that require custom NextStep behavior,
+        /// such as the ProgressAmount calculator.
         /// </summary>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        public static void NextStep(string taskKey)
+        public static void NextStep<TCalc>(Action<TCalc> nextStep) where TCalc : class, IProgressCalculator
         {
-            CurrentTask.NextStep(taskKey);
-        }
-        /// <summary> Sets the current task key, and advances the current progress task to the next step.
-        /// Fires ProgressChanged events.
-        /// </summary>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        /// <param name="taskArg">Provides additional info about the task being performed</param>
-        public static void NextStep(string taskKey, object taskArg)
-        {
-            CurrentTask.NextStep(taskKey, taskArg);
+            CurrentTask.NextStep(nextStep);
         }
 
-    	#endregion
+        // EndTask:
+
+        /// <summary> Ends this task successfully,
+        /// meaning that the 100% complete event will fire.
+        /// This should be called before the task is disposed.
+        /// </summary>
+        public static void EndTask()
+        {
+            CurrentTask.EndTask();
+        }
+        
+        #endregion
+
     }
 }

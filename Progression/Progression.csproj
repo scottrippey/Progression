@@ -39,16 +39,27 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Extras\ETACalculator.cs" />
-    <Compile Include="ProgressTasks\ProgressTask.cs" />
-    <Compile Include="Progress.cs" />
     <Compile Include="ProgressExtensions.cs" />
+    <Compile Include="ProgressTask.cs" />
+    <Compile Include="Extras\ETACalculator.cs" />
     <Compile Include="ProgressChangedInfo.cs" />
-    <Compile Include="ProgressTasks\ProgressTaskUnknownTimer.cs" />
-    <Compile Include="ProgressTasks\ProgressTaskUnknown.cs" />
-    <Compile Include="ProgressTasks\ProgressTaskProportional.cs" />
-    <Compile Include="ProgressTasks\ProgressTaskFixed.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ProgressCalculators\IProgressCalculator.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ProgressCalculators\ProgressCalcFixed.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ProgressCalculators\ProgressCalcProportional.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ProgressCalculators\ProgressCalcUnknown.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Progress.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ProgressDepth.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

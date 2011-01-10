@@ -83,14 +83,14 @@ namespace Progression.Demo
             while (true)
             {
                 Dispatcher.Invoke((Action)ProgressReset);
-                using (Progress.BeginTask(primary).UpdateTask("Primary").UpdateTask((p)=> Dispatcher.Invoke((ProgressChangedHandler)ProgressChanged, p)))
+                using (Progress.BeginTaskFixed(primary).UpdateTaskKey("Primary").OnProgressChanged((p)=> Dispatcher.Invoke((ProgressChangedHandler)ProgressChanged, p)))
                 {
                     for (int i = 0; i < primary; i++)
                     {
                         Progress.NextStep();
 
 
-                        using (Progress.BeginTask(second).UpdateTask("Second"))
+                        using (Progress.BeginTaskFixed(second).UpdateTaskKey("Second"))
                         {
                             for (int j = 0; j < second; j++)
                             {
@@ -98,7 +98,7 @@ namespace Progression.Demo
 
 
 
-                                using (Progress.BeginTask(third).UpdateTask("Third"))
+                                using (Progress.BeginTaskFixed(third).UpdateTaskKey("Third"))
                                 {
                                     for (int k = 0; k < third; k++)
                                     {

@@ -1,10 +1,11 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.Threading;
 
-namespace Progression.ProgressTasks
+namespace Progression.ProgressCalculators
 {
     [DebuggerStepThrough]
-    public class ProgressTaskUnknownTimer : ProgressTaskUnknown
+    public class ProgressCalcUnknownTimer : ProgressCalcUnknown, IDisposable
     {
         /// <summary>
         /// Represents an enhanced version of ProgressUnknown.
@@ -23,14 +24,17 @@ namespace Progression.ProgressTasks
         /// This value cannot equal 0.0 or 1.0.
         /// </param>
         /// <param name="interval">The rate at which to update the progress, in milliseconds</param>
-        public ProgressTaskUnknownTimer(float estimatedDuration, float estimatedWeight, int interval)
+        /// <param name="parent"></param>
+        public ProgressCalcUnknownTimer(float estimatedDuration, float estimatedWeight, int interval, Progress parent)
             : base(estimatedDuration * (1000f / interval), estimatedWeight)
         {
             this.Interval = interval;
             // Setup the timer:
-            timer = new Timer(timerCallback, null, interval, interval);
+            this.timer = new Timer(timerCallback, null, interval, interval);
+            this.parent = parent;
         }
         private Timer timer;
+        private Progress parent;
 
         /// <summary> The duration, in milliseconds, between Timer events
         /// </summary>
@@ -40,18 +44,20 @@ namespace Progression.ProgressTasks
         /// </summary>
         private void timerCallback(object state)
         {
-            if (timer == null) return; // We are disposed, so ignore queued timer events!
-            base.NextStep();
+            if (this.timer == null) return; // We are disposed, so ignore queued timer events!
+            this.NextStep();
+            this.parent.OnProgressChanged();
+            //this.parent.NextStep();
         }
 
-        protected override void EndTask(bool completedSuccessfully)
+        public void Dispose()
         {
             // When we are finished, let's dispose the timer,
             // and set it to null to indicate that we're disposed.
-            if (timer != null) timer.Dispose();
-            timer = null;
+            if (this.timer != null) timer.Dispose();
+            this.timer = null;
 
-            base.EndTask(completedSuccessfully);
+            this.parent = null;
         }
 
     }

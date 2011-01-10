@@ -56,7 +56,7 @@ namespace Progression.Tests
         {
             currentProgress = -1f;
             // Normal for-loop:
-            using (Progress.BeginTask(10).UpdateTask(AssertProgressIsGrowing))
+            using (Progress.BeginTaskFixed(10).OnProgressChanged(AssertProgressIsGrowing, ProgressDepth.Unlimited))
             {
                 for (int i = 0; i < 10; i++)
                 {
@@ -73,11 +73,11 @@ namespace Progression.Tests
         {
             currentProgress = -1f;
             // Begin main task with 4 sections, each one taking longer:
-            using (Progress.BeginTask(new[] { 10f, 20f, 30f, 40f }).UpdateTask(AssertProgressIsGrowing))
+            using (Progress.BeginTaskProportional(new[] { 10f, 20f, 30f, 40f }).OnProgressChanged(AssertProgressIsGrowing))
             {
                 Progress.NextStep(); // Advance the main task
                 // Normal for-loop:
-                Progress.BeginTask(10);
+                Progress.BeginTaskFixed(10);
                 for (int i = 0; i < 10; i++)
                 {
                     Progress.NextStep();
@@ -106,7 +106,7 @@ namespace Progression.Tests
 
                 Progress.NextStep(); // Advance the main task
                 // Normal for-loop, with a "using" block instead of EndTask.
-                using (Progress.BeginTask(40))
+                using (Progress.BeginTaskFixed(40))
                 {
                     for (int i = 0; i < 40; i++)
                     {
@@ -126,7 +126,7 @@ namespace Progression.Tests
         public void TestNestedMethods()
         {
             currentProgress = -1f;
-            using (Progress.BeginTask(new[] { 10f, 20f, 550f }).UpdateTask(AssertProgressIsGrowing))
+            using (Progress.BeginTaskProportional(new[] { 10f, 20f, 550f }).OnProgressChanged(AssertProgressIsGrowing))
             {
                 Progress.NextStep();
                 AssertCurrentProgress(0f);
@@ -153,7 +153,7 @@ namespace Progression.Tests
 
         public void Iterate20()
         {
-            using (Progress.BeginTask(20))
+            using (Progress.BeginTaskFixed(20))
             {
                 for (int i = 0; i < 20; i++)
                 {
@@ -179,7 +179,7 @@ namespace Progression.Tests
             var proportions = items.Select(i => (float)i.X).ToArray();
             foreach (var x in items.WithProgress(proportions))
             {
-                using (Progress.BeginTask(x.X))
+                using (Progress.BeginTaskFixed(x.X))
                 {
                     for (int i = 0; i < x.X; i++)
                     {
@@ -195,7 +195,7 @@ namespace Progression.Tests
         public void TestUnknown()
         {
             currentProgress = -1f;
-            using (Progress.BeginTaskUnknown(100f, .75f).UpdateTask(AssertProgressIsGrowing))
+            using (Progress.BeginTaskUnknown(100, .75f).OnProgressChanged(AssertProgressIsGrowing))
             {
                 var count = 200; // Do way more than expected to make sure progress doesn't go over 100%.
                 Console.WriteLine("Performing {0} iterations", count);
@@ -221,10 +221,10 @@ namespace Progression.Tests
         public void TestUnknownTimer()
         {
             currentProgress = -1f;
-            using (Progress.BeginTask(10f,80f,10f).UpdateTask(AssertProgressIsGrowing))
+            using (Progress.BeginTaskProportional(10f,80f,10f).OnProgressChanged(AssertProgressIsGrowing))
             {
-                Progress.NextStep("Stall 1 second");
-                Progress.BeginTask(10);
+                Progress.UpdateTaskKey("Stall 1 second").NextStep();
+                Progress.BeginTaskFixed(10);
                 for (int i = 0; i < 10; i++)
                 {
                     Progress.NextStep();
@@ -234,8 +234,8 @@ namespace Progression.Tests
 
 
                 // Start a task that takes unknown time:
-                Progress.NextStep("Unknown for 8+ seconds");
-                using (Progress.BeginTaskUnknown(8f, .90f, 1000))
+                Progress.UpdateTaskKey("Unknown for 8+ seconds").NextStep();
+                using (Progress.BeginTaskUnknown(8, .90f))
                 {
                     System.Threading.Thread.Sleep(8000);
                     System.Threading.Thread.Sleep(3000); // Take some extra time!
@@ -243,8 +243,8 @@ namespace Progression.Tests
                 }
 
 
-                Progress.NextStep("Stall another second");
-                using (Progress.BeginTask(10))
+                Progress.UpdateTaskKey("Stall another second").NextStep();
+                using (Progress.BeginTaskFixed(10))
                 {
                     for (int i = 0; i < 10; i++)
                     {
@@ -272,17 +272,17 @@ namespace Progression.Tests
             var items = new[]{1,2,3,4,5};
 
             // Here, we set the callback with a maximum depth of 3:
-            foreach (var zero in items.WithProgress(callback, 3))
+            foreach (var zero in items.WithProgress().OnProgressChanged(callback, (ProgressDepth)3))
             {
                 foreach (var one in items.WithProgress())
                 {
                     foreach (var two in items.WithProgress())
                     {
                         // This progress is 3-deep, so it should work Just fine:
-                        foreach (var three in items.WithProgress("Just fine"))
+                        foreach (var three in items.WithProgress().UpdateTaskKey("Just fine"))
                         {
                             // This progress is 4-deep, so it shouldn't fire the callback:
-                            foreach (var four in items.WithProgress("Too Deep!"))
+                            foreach (var four in items.WithProgress().UpdateTaskKey("Too Deep!"))
                             {
                                 DoNothing(four);       
                             }
@@ -304,7 +304,7 @@ namespace Progression.Tests
             try
             {
                 currentProgress = -1;
-                foreach (var i in tenItems.WithProgress(AssertProgressIsGrowing))
+                foreach (var i in tenItems.WithProgress().OnProgressChanged(AssertProgressIsGrowing))
                 {
                     foreach (var j in tenItems.WithProgress())
                     {
@@ -331,17 +331,17 @@ namespace Progression.Tests
         public void Test_OpenProgressWithError()
         {
             currentProgress = -1;
-            using (Progress.BeginTask(5).UpdateTask(AssertProgressIsGrowing))
+            using (Progress.BeginTaskFixed(5).OnProgressChanged(AssertProgressIsGrowing))
             {
                 Progress.NextStep();
 
                 try
                 {
 
-                    Progress.BeginTask(5);
+                    Progress.BeginTaskFixed(5);
                     Progress.NextStep();
 
-                    Progress.BeginTask(5);
+                    Progress.BeginTaskFixed(5);
                     Progress.NextStep();
 
                     throw new Exception("What happens if we don't use \"using\" blocks and we forget to call EndTask?");
@@ -356,7 +356,7 @@ namespace Progression.Tests
             }
             
             // Make sure the progress tasks are all disposed:
-            Assert.IsNull(ProgressTasks.ProgressTask.CurrentTask);
+            Assert.IsNull(ProgressTask.CurrentTask);
         }
 
     }

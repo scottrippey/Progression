@@ -1,65 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
-using Progression.ProgressTasks;
+using System.Linq;
 
 namespace Progression
 {
     [DebuggerNonUserCode]
     public static class ProgressExtensions
     {
-        #region: Chainable methods :
-
-        /// <summary> Chainable extension method that simply updates the current TaskKey.
-        /// Same as calling Progress.Update(...).
-        /// </summary>
-        /// <param name="progress">The progress object simply gets passed-through, allowing chainability</param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        public static TProgress UpdateTask<TProgress>(this TProgress progress, string taskKey) where TProgress : ProgressTask
-        {
-            Progress.Update(taskKey);
-            return progress;
-        }
-
-        /// <summary> Chainable extension method that simply updates the current TaskKey and TaskArg.
-        /// Same as calling Progress.Update(...).
-        /// </summary>
-        /// <param name="progress">The progress object simply gets passed-through, allowing chainability</param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        /// <param name="taskArg">Provides additional info about the task being performed</param>
-        public static TProgress UpdateTask<TProgress>(this TProgress progress, string taskKey, object taskArg) where TProgress : ProgressTask
-        {
-            Progress.Update(taskKey, taskArg);
-            return progress;
-        }
-
-        /// <summary> Chainable extension method that simply attaches the callback.
-        /// Same as calling Progress.UpdateCallback(...).
-        /// </summary>
-        /// <param name="progress">The progress object simply gets passed-through, allowing chainability</param>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        public static TProgress UpdateTask<TProgress>(this TProgress progress, ProgressChangedHandler callback) where TProgress : ProgressTask
-        {
-            Progress.Update(callback);
-            return progress;
-        }
-        /// <summary> Chainable extension method that simply attaches the callback.
-        /// Same as calling Progress.UpdateCallback(...).
-        /// </summary>
-        /// <param name="progress">The progress object simply gets passed-through, allowing chainability</param>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maximumDepth">
-        /// The maximum depth that will activate the callback.
-        /// A value of 0 indicates that only this task will activate the callback.
-        /// Default is int.MaxValue.
-        /// </param>
-        public static TProgress UpdateTask<TProgress>(this TProgress progress, ProgressChangedHandler callback, int maximumDepth) where TProgress : ProgressTask
-        {
-            Progress.Update(callback, maximumDepth);
-            return progress;
-        }
-
-        #endregion
-
         #region: WithProgress methods :
 
         // Note: These methods wrap an IEnumerable, monitoring progress as the object is enumerated.
@@ -69,14 +18,10 @@ namespace Progression
         /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
         /// <param name="taskArg">Provides additional info about the task being performed</param>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maximumDepth">
-        /// The maximum depth that will activate the callback.
-        /// A value of 0 indicates that only this task will activate the callback.
-        /// Default is int.MaxValue.
-        /// </param>
-        public static IEnumerable<T> WithProgress<T>(this ICollection<T> source, string taskKey, object taskArg, ProgressChangedHandler callback, int maximumDepth)
+        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
+        public static ProgressEnumerator<T> WithProgress<T>(this ICollection<T> source)
         {
-            return WithProgress(source, source.Count, taskKey, taskArg, callback, maximumDepth);
+            return new ProgressEnumerator<T>(source, Progress.BeginTaskFixed(source.Count));
         }
 
         /// <summary> Tracks progress as the source is enumerated. </summary>
@@ -85,24 +30,10 @@ namespace Progression
         /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
         /// <param name="taskArg">Provides additional info about the task being performed</param>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maximumDepth">
-        /// The maximum depth that will activate the callback.
-        /// A value of 0 indicates that only this task will activate the callback.
-        /// Default is int.MaxValue.
-        /// </param>
-        public static IEnumerable<T> WithProgress<T>(this IEnumerable<T> source, int sourceCount, string taskKey, object taskArg, ProgressChangedHandler callback, int maximumDepth)
+        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
+        public static ProgressEnumerator<T> WithProgress<T>(this IEnumerable<T> source, int sourceCount)
         {
-            using (Progress.BeginTask(sourceCount))
-            {
-                if (taskKey != null) Progress.Update(taskKey, taskArg);
-                if (callback != null) Progress.Update(callback, maximumDepth);
-                foreach (var item in source)
-                {
-                    Progress.NextStep();
-                    yield return item;
-                }
-                Progress.EndTask();
-            }
+            return new ProgressEnumerator<T>(source, Progress.BeginTaskFixed(sourceCount));
         }
 
         /// <summary> Tracks progress as the source is enumerated.
@@ -116,24 +47,10 @@ namespace Progression
         /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
         /// <param name="taskArg">Provides additional info about the task being performed</param>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maximumDepth">
-        /// The maximum depth that will activate the callback.
-        /// A value of 0 indicates that only this task will activate the callback.
-        /// Default is int.MaxValue.
-        /// </param>
-        public static IEnumerable<T> WithProgress<T>(this IEnumerable<T> source, float[] stepProportions, string taskKey, object taskArg, ProgressChangedHandler callback, int maximumDepth)
+        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
+        public static ProgressEnumerator<T> WithProgress<T>(this IEnumerable<T> source, float[] stepProportions)
         {
-            using (Progress.BeginTask(stepProportions))
-            {
-                if (taskKey != null) Progress.Update(taskKey, taskArg);
-                if (callback != null) Progress.Update(callback, maximumDepth);
-                foreach (var item in source)
-                {
-                    Progress.NextStep();
-                    yield return item;
-                }
-                Progress.EndTask();
-            }
+            return new ProgressEnumerator<T>(source, Progress.BeginTaskProportional(stepProportions));
         }
 
         /// <summary> Tracks progress as the source is enumerated.
@@ -157,315 +74,129 @@ namespace Progression
         /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
         /// <param name="taskArg">Provides additional info about the task being performed</param>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maximumDepth">
-        /// The maximum depth that will activate the callback.
-        /// A value of 0 indicates that only this task will activate the callback.
-        /// Default is int.MaxValue.
-        /// </param>
-        public static IEnumerable<T> WithProgressUnknown<T>(this IEnumerable<T> source, float estimatedCount, float estimatedWeight, string taskKey, object taskArg, ProgressChangedHandler callback, int maximumDepth)
+        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
+        public static ProgressEnumerator<T> WithProgressUnknown<T>(this IEnumerable<T> source, int estimatedCount, float estimatedWeight)
         {
             // Just in case the source is a Collection or List, we can use the Count so that the task isn't "Unknown":
             var sourceCollection = source as ICollection<T>;
-            using ((sourceCollection != null) ? (ProgressTask)Progress.BeginTask(sourceCollection.Count) : Progress.BeginTaskUnknown(estimatedCount, estimatedWeight))
-            {
-                if (taskKey != null) Progress.Update(taskKey, taskArg);
-                if (callback != null) Progress.Update(callback, maximumDepth);
-                foreach (var item in source)
-                {
-                    Progress.NextStep();
-                    yield return item;
-                }
-                Progress.EndTask();
-            }
+            return new ProgressEnumerator<T>(source, (sourceCollection != null) ? Progress.BeginTaskFixed(sourceCollection.Count) : Progress.BeginTaskUnknown(estimatedCount, estimatedWeight));
         }
 
         #endregion
     }
 
-    /// <summary> This class contains overloads for the ProgressExtensions methods.
-    /// It would be way easier to just have optional-parameters in the original methods,
-    /// but this allows compatibility with .NET 3.5.
-    /// </summary>
-    [DebuggerNonUserCode]
-    public static class ProgressExtensionsOverloads
+    /// <summary> Wraps an enumerable source, reporting progress as the source is enumerated. </summary>
+    /// <remarks>
+    /// It would have been way easier to just use the "yield return" feature,
+    /// but this allows us to provide "chainable" methods
+    /// such as OnProgressChanged, UpdateMaxDepth, and UpdateTaskKey.
+    /// </remarks>
+    public class ProgressEnumerator<T> : IEnumerable<T>, IEnumerator<T>
     {
-        /// <summary> Tracks progress as the source is enumerated. </summary>
-        /// <param name="source">The Count property will be used to calculate progress as items are enumerated.</param>
-        public static IEnumerable<T> WithProgress<T>(this ICollection<T> source)
+        public ProgressEnumerator(IEnumerable<T> source, ProgressTask progress)
         {
-            return ProgressExtensions.WithProgress(source, null, null, null, 0);
-        }
-        /// <summary> Tracks progress as the source is enumerated. </summary>
-        /// <param name="source">The Count property will be used to calculate progress as items are enumerated.</param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        public static IEnumerable<T> WithProgress<T>(this ICollection<T> source, string taskKey)
-        {
-            return ProgressExtensions.WithProgress(source, taskKey, null, null, 0);
-        }
-        /// <summary> Tracks progress as the source is enumerated. </summary>
-        /// <param name="source">The Count property will be used to calculate progress as items are enumerated.</param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        /// <param name="taskArg">Provides additional info about the task being performed</param>
-        public static IEnumerable<T> WithProgress<T>(this ICollection<T> source, string taskKey, object taskArg)
-        {
-            return ProgressExtensions.WithProgress(source, taskKey, taskArg, null, 0);
-        }
-        /// <summary> Tracks progress as the source is enumerated. </summary>
-        /// <param name="source">The Count property will be used to calculate progress as items are enumerated.</param>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        public static IEnumerable<T> WithProgress<T>(this ICollection<T> source, ProgressChangedHandler callback)
-        {
-            return ProgressExtensions.WithProgress(source, null, null, callback, int.MaxValue);
-        }
-        /// <summary> Tracks progress as the source is enumerated. </summary>
-        /// <param name="source">The Count property will be used to calculate progress as items are enumerated.</param>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maximumDepth">
-        /// The maximum depth that will activate the callback.
-        /// A value of 0 indicates that only this task will activate the callback.
-        /// Default is int.MaxValue.
-        /// </param>
-        public static IEnumerable<T> WithProgress<T>(this ICollection<T> source, ProgressChangedHandler callback, int maximumDepth)
-        {
-            return ProgressExtensions.WithProgress(source, null, null, callback, maximumDepth);
+            this.source = source;
+            this.progress = progress;
         }
 
-        /// <summary> Tracks progress as the source is enumerated. </summary>
-        /// <param name="source"></param>
-        /// <param name="sourceCount">Used to calculate progress as items are enumerated. If the count is unknown, use the "WithProgressUnknown" overload.</param>
-        public static IEnumerable<T> WithProgress<T>(this IEnumerable<T> source, int sourceCount)
+        public override string ToString()
         {
-            return ProgressExtensions.WithProgress(source, sourceCount, null, null, null, 0);
+            return progress.ToString();
         }
-        /// <summary> Tracks progress as the source is enumerated. </summary>
-        /// <param name="source"></param>
-        /// <param name="sourceCount">Used to calculate progress as items are enumerated. If the count is unknown, use the "WithProgressUnknown" overload.</param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        public static IEnumerable<T> WithProgress<T>(this IEnumerable<T> source, int sourceCount, string taskKey)
+        
+        #region: IEnumerable / IEnumerator Wrapper :
+
+        private IEnumerable<T> source;
+        private ProgressTask progress;
+
+        private IEnumerator<T> sourceEnumerator;
+        public IEnumerator<T> GetEnumerator()
         {
-            return ProgressExtensions.WithProgress(source, sourceCount, taskKey, null, null, 0);
+            sourceEnumerator = source.GetEnumerator();
+            return this;
         }
-        /// <summary> Tracks progress as the source is enumerated. </summary>
-        /// <param name="source"></param>
-        /// <param name="sourceCount">Used to calculate progress as items are enumerated. If the count is unknown, use the "WithProgressUnknown" overload.</param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        /// <param name="taskArg">Provides additional info about the task being performed</param>
-        public static IEnumerable<T> WithProgress<T>(this IEnumerable<T> source, int sourceCount, string taskKey, object taskArg)
+        IEnumerator IEnumerable.GetEnumerator()
         {
-            return ProgressExtensions.WithProgress(source, sourceCount, taskKey, taskArg, null, 0);
-        }
-        /// <summary> Tracks progress as the source is enumerated. </summary>
-        /// <param name="source"></param>
-        /// <param name="sourceCount">Used to calculate progress as items are enumerated. If the count is unknown, use the "WithProgressUnknown" overload.</param>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        public static IEnumerable<T> WithProgress<T>(this IEnumerable<T> source, int sourceCount, ProgressChangedHandler callback)
-        {
-            return ProgressExtensions.WithProgress(source, sourceCount, null, null, callback, int.MaxValue);
-        }
-        /// <summary> Tracks progress as the source is enumerated. </summary>
-        /// <param name="source"></param>
-        /// <param name="sourceCount">Used to calculate progress as items are enumerated. If the count is unknown, use the "WithProgressUnknown" overload.</param>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maximumDepth">
-        /// The maximum depth that will activate the callback.
-        /// A value of 0 indicates that only this task will activate the callback.
-        /// Default is int.MaxValue.
-        /// </param>
-        public static IEnumerable<T> WithProgress<T>(this IEnumerable<T> source, int sourceCount, ProgressChangedHandler callback, int maximumDepth)
-        {
-            return ProgressExtensions.WithProgress(source, sourceCount, null, null, callback, maximumDepth);
+            return this.GetEnumerator();
         }
 
-        /// <summary> Tracks progress as the source is enumerated.
-        /// Progress is calculated proportionally for each step.
-        /// </summary>
-        /// <param name="source"></param>
-        /// <param name="stepProportions">
-        /// Determines the proportion of each step.
-        /// For example, the filesize of a copy operation.
-        /// </param>
-        public static IEnumerable<T> WithProgress<T>(this IEnumerable<T> source, float[] stepProportions)
+        public bool MoveNext()
         {
-            return ProgressExtensions.WithProgress(source, stepProportions, null, null, null, 0);
-        }
-        /// <summary> Tracks progress as the source is enumerated.
-        /// Progress is calculated proportionally for each step.
-        /// </summary>
-        /// <param name="source"></param>
-        /// <param name="stepProportions">
-        /// Determines the proportion of each step.
-        /// For example, the filesize of a copy operation.
-        /// </param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        public static IEnumerable<T> WithProgress<T>(this IEnumerable<T> source, float[] stepProportions, string taskKey)
-        {
-            return ProgressExtensions.WithProgress(source, stepProportions, taskKey, null, null, 0);
-        }
-        /// <summary> Tracks progress as the source is enumerated.
-        /// Progress is calculated proportionally for each step.
-        /// </summary>
-        /// <param name="source"></param>
-        /// <param name="stepProportions">
-        /// Determines the proportion of each step.
-        /// For example, the filesize of a copy operation.
-        /// </param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        /// <param name="taskArg">Provides additional info about the task being performed</param>
-        public static IEnumerable<T> WithProgress<T>(this IEnumerable<T> source, float[] stepProportions, string taskKey, object taskArg)
-        {
-            return ProgressExtensions.WithProgress(source, stepProportions, taskKey, taskArg, null, 0);
-        }
-        /// <summary> Tracks progress as the source is enumerated.
-        /// Progress is calculated proportionally for each step.
-        /// </summary>
-        /// <param name="source"></param>
-        /// <param name="stepProportions">
-        /// Determines the proportion of each step.
-        /// For example, the filesize of a copy operation.
-        /// </param>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        public static IEnumerable<T> WithProgress<T>(this IEnumerable<T> source, float[] stepProportions, ProgressChangedHandler callback)
-        {
-            return ProgressExtensions.WithProgress(source, stepProportions, null, null, callback, int.MaxValue);
-        }
-        /// <summary> Tracks progress as the source is enumerated.
-        /// Progress is calculated proportionally for each step.
-        /// </summary>
-        /// <param name="source"></param>
-        /// <param name="stepProportions">
-        /// Determines the proportion of each step.
-        /// For example, the filesize of a copy operation.
-        /// </param>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maximumDepth">
-        /// The maximum depth that will activate the callback.
-        /// A value of 0 indicates that only this task will activate the callback.
-        /// Default is int.MaxValue.
-        /// </param>
-        public static IEnumerable<T> WithProgress<T>(this IEnumerable<T> source, float[] stepProportions, ProgressChangedHandler callback, int maximumDepth)
-        {
-            return ProgressExtensions.WithProgress(source, stepProportions, null, null, callback, maximumDepth);
+            if (sourceEnumerator.MoveNext())
+            {
+                progress.NextStep();
+                return true;
+            }
+            else
+            {
+                progress.EndTask();
+                return false;
+            }
         }
 
-        /// <summary> Tracks progress as the source is enumerated.
-        /// 
-        /// Since the number of items is unknown,
-        /// as tasks complete, the progress will get nearer completion,
-        /// but will never reach 100%.
-        /// </summary>
-        /// <param name="source">Note: If the source is a Collection, then the Count will be used and the estimatedSteps will be ignored.</param>
-        /// <param name="estimatedCount">
-        /// Determines how "unknown" progress is calculated.  This should be a rough estimate of the number of steps expected.
-        /// As steps are completed, progress gets closer to 100%, but never reaches it.
-        /// </param>
-        /// <param name="estimatedWeight">
-        /// A value between 0.0 and 1.0 that determines how much weight to place on the estimated steps.
-        /// For example, if estimatedSteps is 100 and estimatedWeight is .75,
-        /// then when 100 steps have completed, progress will be at 75%.
-        /// 
-        /// This value cannot equal 0.0 or 1.0.
-        /// </param>
-        public static IEnumerable<T> WithProgressUnknown<T>(this IEnumerable<T> source, float estimatedCount, float estimatedWeight)
+        public T Current { get { return this.sourceEnumerator.Current; } }
+        object IEnumerator.Current { get { return this.sourceEnumerator.Current; } }
+
+        public void Dispose()
         {
-            return ProgressExtensions.WithProgressUnknown(source, estimatedCount, estimatedWeight, null, null, null, 0);
+            sourceEnumerator.Dispose();
+            progress.Dispose();
         }
-        /// <summary> Tracks progress as the source is enumerated.
-        /// 
-        /// Since the number of items is unknown,
-        /// as tasks complete, the progress will get nearer completion,
-        /// but will never reach 100%.
-        /// </summary>
-        /// <param name="source">Note: If the source is a Collection, then the Count will be used and the estimatedSteps will be ignored.</param>
-        /// <param name="estimatedCount">
-        /// Determines how "unknown" progress is calculated.  This should be a rough estimate of the number of steps expected.
-        /// As steps are completed, progress gets closer to 100%, but never reaches it.
-        /// </param>
-        /// <param name="estimatedWeight">
-        /// A value between 0.0 and 1.0 that determines how much weight to place on the estimated steps.
-        /// For example, if estimatedSteps is 100 and estimatedWeight is .75,
-        /// then when 100 steps have completed, progress will be at 75%.
-        /// 
-        /// This value cannot equal 0.0 or 1.0.
-        /// </param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        /// <param name="taskArg">Provides additional info about the task being performed</param>
-        public static IEnumerable<T> WithProgressUnknown<T>(this IEnumerable<T> source, float estimatedCount, float estimatedWeight, string taskKey, object taskArg)
+
+        public void Reset()
         {
-            return ProgressExtensions.WithProgressUnknown(source, estimatedCount, estimatedWeight, taskKey, taskArg, null, 0);
+            throw new NotSupportedException();
         }
-        /// <summary> Tracks progress as the source is enumerated.
+
+        #endregion
+
+        #region: Chainable Progress methods :
+
+        /// <summary> Attaches the callback to fire when progress is reported.
         /// 
-        /// Since the number of items is unknown,
-        /// as tasks complete, the progress will get nearer completion,
-        /// but will never reach 100%.
+        /// This is usually called at the beginning of the task.
         /// </summary>
-        /// <param name="source">Note: If the source is a Collection, then the Count will be used and the estimatedSteps will be ignored.</param>
-        /// <param name="estimatedCount">
-        /// Determines how "unknown" progress is calculated.  This should be a rough estimate of the number of steps expected.
-        /// As steps are completed, progress gets closer to 100%, but never reaches it.
-        /// </param>
-        /// <param name="estimatedWeight">
-        /// A value between 0.0 and 1.0 that determines how much weight to place on the estimated steps.
-        /// For example, if estimatedSteps is 100 and estimatedWeight is .75,
-        /// then when 100 steps have completed, progress will be at 75%.
-        /// 
-        /// This value cannot equal 0.0 or 1.0.
-        /// </param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        public static IEnumerable<T> WithProgressUnknown<T>(this IEnumerable<T> source, float estimatedCount, float estimatedWeight, string taskKey)
-        {
-            return ProgressExtensions.WithProgressUnknown(source, estimatedCount, estimatedWeight, taskKey, null, null, 0);
-        }
-        /// <summary> Tracks progress as the source is enumerated.
-        /// 
-        /// Since the number of items is unknown,
-        /// as tasks complete, the progress will get nearer completion,
-        /// but will never reach 100%.
-        /// </summary>
-        /// <param name="source">Note: If the source is a Collection, then the Count will be used and the estimatedSteps will be ignored.</param>
-        /// <param name="estimatedCount">
-        /// Determines how "unknown" progress is calculated.  This should be a rough estimate of the number of steps expected.
-        /// As steps are completed, progress gets closer to 100%, but never reaches it.
-        /// </param>
-        /// <param name="estimatedWeight">
-        /// A value between 0.0 and 1.0 that determines how much weight to place on the estimated steps.
-        /// For example, if estimatedSteps is 100 and estimatedWeight is .75,
-        /// then when 100 steps have completed, progress will be at 75%.
-        /// 
-        /// This value cannot equal 0.0 or 1.0.
-        /// </param>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        public static IEnumerable<T> WithProgressUnknown<T>(this IEnumerable<T> source, float estimatedCount, float estimatedWeight, ProgressChangedHandler callback)
+        public ProgressEnumerator<T> OnProgressChanged(ProgressChangedHandler callback)
         {
-            return ProgressExtensions.WithProgressUnknown(source, estimatedCount, estimatedWeight, null, null, callback, int.MaxValue);
+            progress.OnProgressChanged(callback);
+            return this;
         }
-        /// <summary> Tracks progress as the source is enumerated.
+        /// <summary> Attaches the callback to fire when progress is reported.
         /// 
-        /// Since the number of items is unknown,
-        /// as tasks complete, the progress will get nearer completion,
-        /// but will never reach 100%.
+        /// This is usually called at the beginning of the task.
         /// </summary>
-        /// <param name="source">Note: If the source is a Collection, then the Count will be used and the estimatedSteps will be ignored.</param>
-        /// <param name="estimatedCount">
-        /// Determines how "unknown" progress is calculated.  This should be a rough estimate of the number of steps expected.
-        /// As steps are completed, progress gets closer to 100%, but never reaches it.
-        /// </param>
-        /// <param name="estimatedWeight">
-        /// A value between 0.0 and 1.0 that determines how much weight to place on the estimated steps.
-        /// For example, if estimatedSteps is 100 and estimatedWeight is .75,
-        /// then when 100 steps have completed, progress will be at 75%.
-        /// 
-        /// This value cannot equal 0.0 or 1.0.
-        /// </param>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maximumDepth">
-        /// The maximum depth that will activate the callback.
-        /// A value of 0 indicates that only this task will activate the callback.
-        /// Default is int.MaxValue.
-        /// </param>
-        public static IEnumerable<T> WithProgressUnknown<T>(this IEnumerable<T> source, float estimatedCount, float estimatedWeight, ProgressChangedHandler callback, int maximumDepth)
+        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
+        public ProgressEnumerator<T> OnProgressChanged(ProgressChangedHandler callback, ProgressDepth maxDepth)
         {
-            return ProgressExtensions.WithProgressUnknown(source, estimatedCount, estimatedWeight, null, null, callback, maximumDepth);
+            progress.OnProgressChanged(callback, maxDepth);
+            return this;
         }
+        /// <summary> Changes the current task's TaskKey. </summary>
+        /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
+        public ProgressEnumerator<T> UpdateTaskKey(string newTaskKey)
+        {
+            progress.UpdateTaskKey(newTaskKey);
+            return this;
+        }
+        /// <summary> Changes the current task's TaskKey. </summary>
+        /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
+        /// <param name="newTaskArg">Provides additional info about the task being performed</param>
+        public ProgressEnumerator<T> UpdateTaskKey(string newTaskKey, object newTaskArg)
+        {
+            progress.UpdateTaskKey(newTaskKey, newTaskArg);
+            return this;
+        }
+        /// <summary> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </summary>
+        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
+        public ProgressEnumerator<T> UpdateMaxDepth(ProgressDepth maxDepth)
+        {
+            progress.UpdateMaxDepth(maxDepth);
+            return this;
+        }
+
+        #endregion
+
     }
 }
