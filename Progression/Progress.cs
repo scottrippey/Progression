@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using Progression.ProgressCalculators;
 
 namespace Progression
@@ -8,8 +6,11 @@ namespace Progression
     //[DebuggerStepThrough]
     public static class Progress 
     {
-        #region: MyRegion :
+        #region: CurrentTask :
 
+        /// <summary> Returns the top of the Progress stack.
+        /// If the top is null, throws an appropriate exception.
+        /// </summary>
         private static ProgressTask CurrentTask
         {
             get
@@ -22,9 +23,7 @@ namespace Progression
 
         #endregion
 
-        #region: Public Static Methods :
-
-        // Factory methods:
+        #region: BeginTask Methods :
 
         /// <summary> Starts a task using a custom progress calculator. </summary>
         /// <param name="calculator">Any custom progress calculator</param>
@@ -71,7 +70,9 @@ namespace Progression
             return new ProgressTask(new ProgressCalcUnknown(estimatedSteps, estimatedWeight));
         }
 
-        // UpdateTaskKey methods:
+        #endregion
+
+        #region: Chainable Update methods :
 
         /// <summary> Attaches the callback to fire when progress is reported.
         /// 
@@ -79,26 +80,28 @@ namespace Progression
         /// </summary>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
         /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
-        public static ProgressTask OnProgressChanged(ProgressChangedHandler callback, ProgressDepth maxDepth)
+        public static ProgressTask SetCallback(ProgressChangedHandler callback, ProgressDepth maxDepth)
         {
-            return CurrentTask.OnProgressChanged(callback, maxDepth);
+            return CurrentTask.SetCallback(callback, maxDepth);
         }
         
         /// <summary> Changes the current task's TaskKey. </summary>
         /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        public static ProgressTask UpdateTaskKey(string newTaskKey)
+        public static ProgressTask SetTaskKey(string newTaskKey)
         {
-            return CurrentTask.UpdateTaskKey(newTaskKey);
+            return CurrentTask.SetTaskKey(newTaskKey);
         }
         /// <summary> Changes the current task's TaskKey. </summary>
         /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
         /// <param name="newTaskArg">Provides additional info about the task being performed</param>
-        public static ProgressTask UpdateTaskKey(string newTaskKey, object newTaskArg)
+        public static ProgressTask SetTaskKey(string newTaskKey, object newTaskArg)
         {
-            return CurrentTask.UpdateTaskKey(newTaskKey, newTaskArg);
+            return CurrentTask.SetTaskKey(newTaskKey, newTaskArg);
         }
 
-        // NextStep methods:
+        #endregion
+
+        #region: NextStep :
 
         /// <summary> Advances the current progress task to the next step.
         /// Fires ProgressChanged events.
@@ -118,7 +121,9 @@ namespace Progression
             CurrentTask.NextStep(nextStep);
         }
 
-        // EndTask:
+        #endregion
+
+        #region: EndTask :
 
         /// <summary> Ends this task successfully,
         /// meaning that the 100% complete event will fire.

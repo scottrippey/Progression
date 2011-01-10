@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+using Progression.ProgressCalculators;
 
 namespace Progression
 {
@@ -15,10 +15,13 @@ namespace Progression
 
         /// <summary> Tracks progress as the source is enumerated. </summary>
         /// <param name="source">The Count property will be used to calculate progress as items are enumerated.</param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        /// <param name="taskArg">Provides additional info about the task being performed</param>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
+        /// <param name="calculator">Any custom progress calculator</param>
+        public static ProgressEnumerator<T> WithProgress<T>(this IEnumerable<T> source, IProgressCalculator calculator)
+        {
+            return new ProgressEnumerator<T>(source, Progress.BeginTask(calculator));
+        }
+        /// <summary> Tracks progress as the source is enumerated. </summary>
+        /// <param name="source">The Count property will be used to calculate progress as items are enumerated.</param>
         public static ProgressEnumerator<T> WithProgress<T>(this ICollection<T> source)
         {
             return new ProgressEnumerator<T>(source, Progress.BeginTaskFixed(source.Count));
@@ -27,10 +30,6 @@ namespace Progression
         /// <summary> Tracks progress as the source is enumerated. </summary>
         /// <param name="source"></param>
         /// <param name="sourceCount">Used to calculate progress as items are enumerated. If the count is unknown, use the "WithProgressUnknown" overload.</param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        /// <param name="taskArg">Provides additional info about the task being performed</param>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
         public static ProgressEnumerator<T> WithProgress<T>(this IEnumerable<T> source, int sourceCount)
         {
             return new ProgressEnumerator<T>(source, Progress.BeginTaskFixed(sourceCount));
@@ -44,10 +43,6 @@ namespace Progression
         /// Determines the proportion of each step.
         /// For example, the filesize of a copy operation.
         /// </param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        /// <param name="taskArg">Provides additional info about the task being performed</param>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
         public static ProgressEnumerator<T> WithProgress<T>(this IEnumerable<T> source, float[] stepProportions)
         {
             return new ProgressEnumerator<T>(source, Progress.BeginTaskProportional(stepProportions));
@@ -71,10 +66,6 @@ namespace Progression
         /// 
         /// This value cannot equal 0.0 or 1.0.
         /// </param>
-        /// <param name="taskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        /// <param name="taskArg">Provides additional info about the task being performed</param>
-        /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
         public static ProgressEnumerator<T> WithProgressUnknown<T>(this IEnumerable<T> source, int estimatedCount, float estimatedWeight)
         {
             // Just in case the source is a Collection or List, we can use the Count so that the task isn't "Unknown":
@@ -89,7 +80,7 @@ namespace Progression
     /// <remarks>
     /// It would have been way easier to just use the "yield return" feature,
     /// but this allows us to provide "chainable" methods
-    /// such as OnProgressChanged, UpdateMaxDepth, and UpdateTaskKey.
+    /// such as SetCallback, SetMaxDepth, and SetTaskKey.
     /// </remarks>
     public class ProgressEnumerator<T> : IEnumerable<T>, IEnumerator<T>
     {
@@ -157,9 +148,9 @@ namespace Progression
         /// This is usually called at the beginning of the task.
         /// </summary>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        public ProgressEnumerator<T> OnProgressChanged(ProgressChangedHandler callback)
+        public ProgressEnumerator<T> SetCallback(ProgressChangedHandler callback)
         {
-            progress.OnProgressChanged(callback);
+            progress.SetCallback(callback);
             return this;
         }
         /// <summary> Attaches the callback to fire when progress is reported.
@@ -168,31 +159,31 @@ namespace Progression
         /// </summary>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
         /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
-        public ProgressEnumerator<T> OnProgressChanged(ProgressChangedHandler callback, ProgressDepth maxDepth)
+        public ProgressEnumerator<T> SetCallback(ProgressChangedHandler callback, ProgressDepth maxDepth)
         {
-            progress.OnProgressChanged(callback, maxDepth);
+            progress.SetCallback(callback, maxDepth);
             return this;
         }
         /// <summary> Changes the current task's TaskKey. </summary>
         /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        public ProgressEnumerator<T> UpdateTaskKey(string newTaskKey)
+        public ProgressEnumerator<T> SetTaskKey(string newTaskKey)
         {
-            progress.UpdateTaskKey(newTaskKey);
+            progress.SetTaskKey(newTaskKey);
             return this;
         }
         /// <summary> Changes the current task's TaskKey. </summary>
         /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
         /// <param name="newTaskArg">Provides additional info about the task being performed</param>
-        public ProgressEnumerator<T> UpdateTaskKey(string newTaskKey, object newTaskArg)
+        public ProgressEnumerator<T> SetTaskKey(string newTaskKey, object newTaskArg)
         {
-            progress.UpdateTaskKey(newTaskKey, newTaskArg);
+            progress.SetTaskKey(newTaskKey, newTaskArg);
             return this;
         }
         /// <summary> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </summary>
         /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
-        public ProgressEnumerator<T> UpdateMaxDepth(ProgressDepth maxDepth)
+        public ProgressEnumerator<T> SetMaxDepth(ProgressDepth maxDepth)
         {
-            progress.UpdateMaxDepth(maxDepth);
+            progress.SetMaxDepth(maxDepth);
             return this;
         }
 

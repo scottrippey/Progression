@@ -18,14 +18,14 @@ namespace Progression
 
         #region: Chainable Methods :
 
-        // UpdateTaskKey methods:
+        // SetTaskKey methods:
 
         /// <summary> Attaches the callback to fire when progress is reported.
         /// 
         /// This is usually called at the beginning of the task.
         /// </summary>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        public ProgressTask OnProgressChanged(ProgressChangedHandler callback)
+        public ProgressTask SetCallback(ProgressChangedHandler callback)
         {
             this.progressChanged += callback;
             this.maximumDepth = ProgressDepth.Unlimited;
@@ -37,7 +37,7 @@ namespace Progression
         /// </summary>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
         /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
-        public ProgressTask OnProgressChanged(ProgressChangedHandler callback, ProgressDepth maxDepth)
+        public ProgressTask SetCallback(ProgressChangedHandler callback, ProgressDepth maxDepth)
         {
             this.progressChanged += callback;
             this.maximumDepth = maxDepth;
@@ -46,7 +46,7 @@ namespace Progression
         
         /// <summary> Changes the current task's TaskKey. </summary>
         /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
-        public ProgressTask UpdateTaskKey(string newTaskKey)
+        public ProgressTask SetTaskKey(string newTaskKey)
         {
             this.taskKey = newTaskKey;
             return this;
@@ -54,7 +54,7 @@ namespace Progression
         /// <summary> Changes the current task's TaskKey. </summary>
         /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
         /// <param name="newTaskArg">Provides additional info about the task being performed</param>
-        public ProgressTask UpdateTaskKey(string newTaskKey, object newTaskArg)
+        public ProgressTask SetTaskKey(string newTaskKey, object newTaskArg)
         {
             this.taskKey = newTaskKey;
             this.taskArg = newTaskArg;
@@ -63,7 +63,7 @@ namespace Progression
 
         /// <summary> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </summary>
         /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
-        public ProgressTask UpdateMaxDepth(ProgressDepth maxDepth)
+        public ProgressTask SetMaxDepth(ProgressDepth maxDepth)
         {
             this.maximumDepth = maxDepth;
             return this;
@@ -80,7 +80,7 @@ namespace Progression
             this.calculator.NextStep();
 
             // Fire the ProgressChanged event:
-            this.OnProgressChanged();
+            this.SetCallback();
         }
         /// <summary> Advances the current progress task to the next step.
         /// Fires ProgressChanged events.
@@ -94,7 +94,7 @@ namespace Progression
             nextStep(this.calculator as TCalc);
 
             // Fire the ProgressChanged event:
-            this.OnProgressChanged();
+            this.SetCallback();
         }
         
         #endregion
@@ -199,7 +199,7 @@ namespace Progression
             // Report the 100% progress:
             if (completedSuccessfully && this.maximumDepth > 0)
             {
-                this.OnProgressChanged();
+                this.SetCallback();
             }
 
             // Clear handlers:
@@ -251,7 +251,7 @@ namespace Progression
         
         /// <summary> Fires ProgressChanged events for the current task and all parent tasks
         /// </summary>
-        private void OnProgressChanged()
+        private void SetCallback()
         {
             // Fire the ProgressChanged event for this and all parent items:
 
@@ -296,16 +296,16 @@ namespace Progression
         /// </summary>
         public ProgressChangedInfo CalculateProgress()
         {
-            var maximumDepth = this.maximumDepth;
+            var depth = this.maximumDepth;
 
             // Collect all tasks stacked on this baseTask:
             // (this part needs to be thread safe)
-            var stack = new Stack<ProgressTask>((maximumDepth <= 0)? 1 : (int)maximumDepth);
+            var stack = new Stack<ProgressTask>((depth <= 0)? 1 : (int)depth);
             var task = this;
-            while (task != null && maximumDepth >= 0)
+            while (task != null && depth >= 0)
             {
                 stack.Push(task);
-                maximumDepth--;
+                depth--;
                 task = task.child; // Thread-safe?
             }
 

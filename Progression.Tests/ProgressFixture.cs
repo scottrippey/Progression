@@ -56,7 +56,7 @@ namespace Progression.Tests
         {
             currentProgress = -1f;
             // Normal for-loop:
-            using (Progress.BeginTaskFixed(10).OnProgressChanged(AssertProgressIsGrowing, ProgressDepth.Unlimited))
+            using (Progress.BeginTaskFixed(10).SetCallback(AssertProgressIsGrowing, ProgressDepth.Unlimited))
             {
                 for (int i = 0; i < 10; i++)
                 {
@@ -73,7 +73,7 @@ namespace Progression.Tests
         {
             currentProgress = -1f;
             // Begin main task with 4 sections, each one taking longer:
-            using (Progress.BeginTaskProportional(new[] { 10f, 20f, 30f, 40f }).OnProgressChanged(AssertProgressIsGrowing))
+            using (Progress.BeginTaskProportional(new[] { 10f, 20f, 30f, 40f }).SetCallback(AssertProgressIsGrowing))
             {
                 Progress.NextStep(); // Advance the main task
                 // Normal for-loop:
@@ -126,7 +126,7 @@ namespace Progression.Tests
         public void TestNestedMethods()
         {
             currentProgress = -1f;
-            using (Progress.BeginTaskProportional(new[] { 10f, 20f, 550f }).OnProgressChanged(AssertProgressIsGrowing))
+            using (Progress.BeginTaskProportional(new[] { 10f, 20f, 550f }).SetCallback(AssertProgressIsGrowing))
             {
                 Progress.NextStep();
                 AssertCurrentProgress(0f);
@@ -195,7 +195,7 @@ namespace Progression.Tests
         public void TestUnknown()
         {
             currentProgress = -1f;
-            using (Progress.BeginTaskUnknown(100, .75f).OnProgressChanged(AssertProgressIsGrowing))
+            using (Progress.BeginTaskUnknown(100, .75f).SetCallback(AssertProgressIsGrowing))
             {
                 var count = 200; // Do way more than expected to make sure progress doesn't go over 100%.
                 Console.WriteLine("Performing {0} iterations", count);
@@ -221,9 +221,9 @@ namespace Progression.Tests
         public void TestUnknownTimer()
         {
             currentProgress = -1f;
-            using (Progress.BeginTaskProportional(10f,80f,10f).OnProgressChanged(AssertProgressIsGrowing))
+            using (Progress.BeginTaskProportional(10f,80f,10f).SetCallback(AssertProgressIsGrowing))
             {
-                Progress.UpdateTaskKey("Stall 1 second").NextStep();
+                Progress.SetTaskKey("Stall 1 second").NextStep();
                 Progress.BeginTaskFixed(10);
                 for (int i = 0; i < 10; i++)
                 {
@@ -234,7 +234,7 @@ namespace Progression.Tests
 
 
                 // Start a task that takes unknown time:
-                Progress.UpdateTaskKey("Unknown for 8+ seconds").NextStep();
+                Progress.SetTaskKey("Unknown for 8+ seconds").NextStep();
                 using (Progress.BeginTaskUnknown(8, .90f))
                 {
                     System.Threading.Thread.Sleep(8000);
@@ -243,7 +243,7 @@ namespace Progression.Tests
                 }
 
 
-                Progress.UpdateTaskKey("Stall another second").NextStep();
+                Progress.SetTaskKey("Stall another second").NextStep();
                 using (Progress.BeginTaskFixed(10))
                 {
                     for (int i = 0; i < 10; i++)
@@ -272,17 +272,17 @@ namespace Progression.Tests
             var items = new[]{1,2,3,4,5};
 
             // Here, we set the callback with a maximum depth of 3:
-            foreach (var zero in items.WithProgress().OnProgressChanged(callback, (ProgressDepth)3))
+            foreach (var zero in items.WithProgress().SetCallback(callback, (ProgressDepth)3))
             {
                 foreach (var one in items.WithProgress())
                 {
                     foreach (var two in items.WithProgress())
                     {
                         // This progress is 3-deep, so it should work Just fine:
-                        foreach (var three in items.WithProgress().UpdateTaskKey("Just fine"))
+                        foreach (var three in items.WithProgress().SetTaskKey("Just fine"))
                         {
                             // This progress is 4-deep, so it shouldn't fire the callback:
-                            foreach (var four in items.WithProgress().UpdateTaskKey("Too Deep!"))
+                            foreach (var four in items.WithProgress().SetTaskKey("Too Deep!"))
                             {
                                 DoNothing(four);       
                             }
@@ -304,7 +304,7 @@ namespace Progression.Tests
             try
             {
                 currentProgress = -1;
-                foreach (var i in tenItems.WithProgress().OnProgressChanged(AssertProgressIsGrowing))
+                foreach (var i in tenItems.WithProgress().SetCallback(AssertProgressIsGrowing))
                 {
                     foreach (var j in tenItems.WithProgress())
                     {
@@ -331,7 +331,7 @@ namespace Progression.Tests
         public void Test_OpenProgressWithError()
         {
             currentProgress = -1;
-            using (Progress.BeginTaskFixed(5).OnProgressChanged(AssertProgressIsGrowing))
+            using (Progress.BeginTaskFixed(5).SetCallback(AssertProgressIsGrowing))
             {
                 Progress.NextStep();
 
