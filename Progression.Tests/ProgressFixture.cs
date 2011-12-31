@@ -56,7 +56,7 @@ namespace Progression.Tests
         {
             currentProgress = -1f;
             // Normal for-loop:
-            using (Progress.BeginTaskFixed(10).SetCallback(AssertProgressIsGrowing, ProgressDepth.Unlimited))
+            using (Progress.BeginFixedTask(10).SetCallback(AssertProgressIsGrowing, ProgressDepth.Unlimited))
             {
                 for (int i = 0; i < 10; i++)
                 {
@@ -73,11 +73,11 @@ namespace Progression.Tests
         {
             currentProgress = -1f;
             // Begin main task with 4 sections, each one taking longer:
-            using (Progress.BeginTaskProportional(new[] { 10f, 20f, 30f, 40f }).SetCallback(AssertProgressIsGrowing))
+            using (Progress.BeginWeightedTask(new[] { 10f, 20f, 30f, 40f }).SetCallback(AssertProgressIsGrowing))
             {
                 Progress.NextStep(); // Advance the main task
                 // Normal for-loop:
-                Progress.BeginTaskFixed(10);
+                Progress.BeginFixedTask(10);
                 for (int i = 0; i < 10; i++)
                 {
                     Progress.NextStep();
@@ -94,7 +94,7 @@ namespace Progression.Tests
                 }
 
                 Progress.NextStep(); // Advance the main task
-                // "Iterate" a proportional array of 30 items:
+                // "Iterate" a weighted array of 30 items:
                 var thirty = new[]{1f,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30};
                 foreach (var i in thirty.WithProgress(thirty))
                 {
@@ -106,7 +106,7 @@ namespace Progression.Tests
 
                 Progress.NextStep(); // Advance the main task
                 // Normal for-loop, with a "using" block instead of EndTask.
-                using (Progress.BeginTaskFixed(40))
+                using (Progress.BeginFixedTask(40))
                 {
                     for (int i = 0; i < 40; i++)
                     {
@@ -126,7 +126,7 @@ namespace Progression.Tests
         public void TestNestedMethods()
         {
             currentProgress = -1f;
-            using (Progress.BeginTaskProportional(new[] { 10f, 20f, 550f }).SetCallback(AssertProgressIsGrowing))
+            using (Progress.BeginWeightedTask(new[] { 10f, 20f, 550f }).SetCallback(AssertProgressIsGrowing))
             {
                 Progress.NextStep();
                 AssertCurrentProgress(0f);
@@ -153,7 +153,7 @@ namespace Progression.Tests
 
         public void Iterate20()
         {
-            using (Progress.BeginTaskFixed(20))
+            using (Progress.BeginFixedTask(20))
             {
                 for (int i = 0; i < 20; i++)
                 {
@@ -176,10 +176,10 @@ namespace Progression.Tests
         public void Iterate550()
         {
             var items = new[] {new {X = 10}, new {X = 20}, new {X = 30}, new {X = 40}, new {X = 50}, new {X = 60}, new {X = 70}, new {X = 80}, new {X = 90}, new {X = 100}};
-            var proportions = items.Select(i => (float)i.X).ToArray();
-            foreach (var x in items.WithProgress(proportions))
+            var weights = items.Select(i => (float)i.X).ToArray();
+            foreach (var x in items.WithProgress(weights))
             {
-                using (Progress.BeginTaskFixed(x.X))
+                using (Progress.BeginFixedTask(x.X))
                 {
                     for (int i = 0; i < x.X; i++)
                     {
@@ -195,7 +195,7 @@ namespace Progression.Tests
         public void TestUnknown()
         {
             currentProgress = -1f;
-            using (Progress.BeginTaskUnknown(100, .75f).SetCallback(AssertProgressIsGrowing))
+            using (Progress.BeginUnknownTask(100, .75f).SetCallback(AssertProgressIsGrowing))
             {
                 var count = 200; // Do way more than expected to make sure progress doesn't go over 100%.
                 Console.WriteLine("Performing {0} iterations", count);
@@ -221,10 +221,10 @@ namespace Progression.Tests
         public void TestUnknownTimer()
         {
             currentProgress = -1f;
-            using (Progress.BeginTaskProportional(10f,80f,10f).SetCallback(AssertProgressIsGrowing))
+            using (Progress.BeginWeightedTask(10f,80f,10f).SetCallback(AssertProgressIsGrowing))
             {
                 Progress.SetTaskKey("Stall 1 second").NextStep();
-                Progress.BeginTaskFixed(10);
+                Progress.BeginFixedTask(10);
                 for (int i = 0; i < 10; i++)
                 {
                     Progress.NextStep();
@@ -235,7 +235,7 @@ namespace Progression.Tests
 
                 // Start a task that takes unknown time:
                 Progress.SetTaskKey("Unknown for 8+ seconds").NextStep();
-                using (Progress.BeginTaskUnknown(8, .90f))
+                using (Progress.BeginUnknownTask(8, .90f))
                 {
                     System.Threading.Thread.Sleep(8000);
                     System.Threading.Thread.Sleep(3000); // Take some extra time!
@@ -244,7 +244,7 @@ namespace Progression.Tests
 
 
                 Progress.SetTaskKey("Stall another second").NextStep();
-                using (Progress.BeginTaskFixed(10))
+                using (Progress.BeginFixedTask(10))
                 {
                     for (int i = 0; i < 10; i++)
                     {
@@ -331,17 +331,17 @@ namespace Progression.Tests
         public void Test_OpenProgressWithError()
         {
             currentProgress = -1;
-            using (Progress.BeginTaskFixed(5).SetCallback(AssertProgressIsGrowing))
+            using (Progress.BeginFixedTask(5).SetCallback(AssertProgressIsGrowing))
             {
                 Progress.NextStep();
 
                 try
                 {
 
-                    Progress.BeginTaskFixed(5);
+                    Progress.BeginFixedTask(5);
                     Progress.NextStep();
 
-                    Progress.BeginTaskFixed(5);
+                    Progress.BeginFixedTask(5);
                     Progress.NextStep();
 
                     throw new Exception("What happens if we don't use \"using\" blocks and we forget to call EndTask?");

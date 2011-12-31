@@ -18,13 +18,13 @@ namespace Progression
         /// <param name="calculator">Any custom progress calculator</param>
         public static ProgressEnumerator<T> WithProgress<T>(this IEnumerable<T> source, IProgressCalculator calculator)
         {
-            return new ProgressEnumerator<T>(source, Progress.BeginTask(calculator));
+            return new ProgressEnumerator<T>(source, Progress.BeginCustomTask(calculator));
         }
         /// <summary> Tracks progress as the source is enumerated. </summary>
         /// <param name="source">The Count property will be used to calculate progress as items are enumerated.</param>
         public static ProgressEnumerator<T> WithProgress<T>(this ICollection<T> source)
         {
-            return new ProgressEnumerator<T>(source, Progress.BeginTaskFixed(source.Count));
+            return new ProgressEnumerator<T>(source, Progress.BeginFixedTask(source.Count));
         }
 
         /// <summary> Tracks progress as the source is enumerated. </summary>
@@ -32,20 +32,20 @@ namespace Progression
         /// <param name="sourceCount">Used to calculate progress as items are enumerated. If the count is unknown, use the "WithProgressUnknown" overload.</param>
         public static ProgressEnumerator<T> WithProgress<T>(this IEnumerable<T> source, int sourceCount)
         {
-            return new ProgressEnumerator<T>(source, Progress.BeginTaskFixed(sourceCount));
+            return new ProgressEnumerator<T>(source, Progress.BeginFixedTask(sourceCount));
         }
 
         /// <summary> Tracks progress as the source is enumerated.
         /// Progress is calculated proportionally for each step.
         /// </summary>
         /// <param name="source"></param>
-        /// <param name="stepProportions">
-        /// Determines the proportion of each step.
+        /// <param name="stepWeights">
+        /// Determines the weight of each step.
         /// For example, the filesize of a copy operation.
         /// </param>
-        public static ProgressEnumerator<T> WithProgress<T>(this IEnumerable<T> source, float[] stepProportions)
+        public static ProgressEnumerator<T> WithProgress<T>(this IEnumerable<T> source, float[] stepWeights)
         {
-            return new ProgressEnumerator<T>(source, Progress.BeginTaskProportional(stepProportions));
+            return new ProgressEnumerator<T>(source, Progress.BeginWeightedTask(stepWeights));
         }
 
         /// <summary> Tracks progress as the source is enumerated.
@@ -70,7 +70,7 @@ namespace Progression
         {
             // Just in case the source is a Collection or List, we can use the Count so that the task isn't "Unknown":
             var sourceCollection = source as ICollection<T>;
-            return new ProgressEnumerator<T>(source, (sourceCollection != null) ? Progress.BeginTaskFixed(sourceCollection.Count) : Progress.BeginTaskUnknown(estimatedCount, estimatedWeight));
+            return new ProgressEnumerator<T>(source, (sourceCollection != null) ? Progress.BeginFixedTask(sourceCollection.Count) : Progress.BeginUnknownTask(estimatedCount, estimatedWeight));
         }
 
         #endregion

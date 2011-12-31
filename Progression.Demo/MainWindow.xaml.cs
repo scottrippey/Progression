@@ -61,9 +61,9 @@ namespace Progression.Demo
                            };
             for (int i = 0; i < p.Count; i++)
             {
-                ui[i].ETA.Add(p[i].Progress);
+                ui[i].ETA.Update(p[i].Progress);
                 ui[i].Progress.Value = p[i].Progress*100d;
-                ui[i].Label.Content = ui[i].ETA.ETAIsAvailable ? string.Format("{0:00}% done\t{1:0.0} seconds remaining\t(ETA is {2:h:mm:ss})", p[i].Progress * 100f, ui[i].ETA.CompletedIn.TotalSeconds, ui[i].ETA.CompletedAt) : "Calculating...";
+                ui[i].Label.Content = ui[i].ETA.ETAIsAvailable ? string.Format("{0:00}% done\t{1:0.0} seconds remaining\t(ETA is {2:h:mm:ss})", p[i].Progress * 100f, ui[i].ETA.ETR.TotalSeconds, ui[i].ETA.ETA) : "Calculating...";
             }
 
         }
@@ -83,14 +83,14 @@ namespace Progression.Demo
             while (true)
             {
                 Dispatcher.Invoke((Action)ProgressReset);
-                using (Progress.BeginTaskFixed(primary).SetTaskKey("Primary").SetCallback((p)=> Dispatcher.Invoke((ProgressChangedHandler)ProgressChanged, p)))
+                using (Progress.BeginFixedTask(primary).SetTaskKey("Primary").SetCallback((p)=> Dispatcher.Invoke((ProgressChangedHandler)ProgressChanged, p)))
                 {
                     for (int i = 0; i < primary; i++)
                     {
                         Progress.NextStep();
 
 
-                        using (Progress.BeginTaskFixed(second).SetTaskKey("Second"))
+                        using (Progress.BeginFixedTask(second).SetTaskKey("Second"))
                         {
                             for (int j = 0; j < second; j++)
                             {
@@ -98,7 +98,7 @@ namespace Progression.Demo
 
 
 
-                                using (Progress.BeginTaskFixed(third).SetTaskKey("Third"))
+                                using (Progress.BeginFixedTask(third).SetTaskKey("Third"))
                                 {
                                     for (int k = 0; k < third; k++)
                                     {

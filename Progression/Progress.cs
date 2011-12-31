@@ -25,26 +25,26 @@ namespace Progression
         /// <summary> Starts a task using a custom progress calculator. </summary>
         /// <param name="calculator">Any custom progress calculator</param>
         /// <returns>Returns an object that ends the task when it is disposed.</returns>
-        public static ProgressTask BeginTask(IProgressCalculator calculator)
+        public static ProgressTask BeginCustomTask(IProgressCalculator calculator)
         {
             return new ProgressTask(calculator);
         }
         /// <summary> Starts a task with a specific number of steps. </summary>
         /// <param name="steps">The number of steps to be performed.</param>
         /// <returns>Returns an object that ends the task when it is disposed.</returns>
-        public static ProgressTask BeginTaskFixed(int steps)
+        public static ProgressTask BeginFixedTask(int steps)
         {
             return new ProgressTask(new ProgressCalcFixed(steps));
         }
         /// <summary> Starts a task with a specific number of steps.
         /// Progress is calculated proportionally for each step.
         /// </summary>
-        /// <param name="stepProportions">The proportion of each step.
+        /// <param name="stepWeights">The weight of each step.
         /// For example, if you specify 4,6,10 then the steps will progress 20%,30%, and 50%.</param>
         /// <returns>Returns an object that ends the task when it is disposed.</returns>
-        public static ProgressTask BeginTaskProportional(params float[] stepProportions)
+        public static ProgressTask BeginWeightedTask(params float[] stepWeights)
         {
-            return new ProgressTask(new ProgressCalcProportional(stepProportions));
+            return new ProgressTask(new ProgressCalcWeighted(stepWeights));
         }
         /// <summary> Starts a task with an unknown number of steps.
         /// As tasks complete, the progress will get nearer completion,
@@ -62,7 +62,7 @@ namespace Progression
         /// This value cannot equal 0.0 or 1.0.
         /// </param>
         /// <returns>Returns an object that ends the task when it is disposed.</returns>
-        public static ProgressTask BeginTaskUnknown(int estimatedSteps, float estimatedWeight)
+        public static ProgressTask BeginUnknownTask(int estimatedSteps, float estimatedWeight)
         {
             return new ProgressTask(new ProgressCalcUnknown(estimatedSteps, estimatedWeight));
         }

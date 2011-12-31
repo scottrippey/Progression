@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 
 namespace Progression.ProgressCalculators
 {
@@ -20,6 +21,11 @@ namespace Progression.ProgressCalculators
         /// </param>
         public ProgressCalcUnknown(int estimatedSteps, float estimatedWeight)
         {
+            // Validate:
+            if (estimatedWeight <= 0.0f || estimatedWeight >= 1.0f)
+            {
+                throw new ArgumentOutOfRangeException("estimatedWeight", estimatedWeight, "Estimated weight must be BETWEEN 0.0 and 1.0.");
+            }
             // Progress Equation: W = S / (S + F)
             // Solved for F: F = S * (1 / W - 1)
             this.UnknownFactor = estimatedSteps * (1f / estimatedWeight - 1f);

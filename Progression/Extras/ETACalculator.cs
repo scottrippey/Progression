@@ -8,11 +8,37 @@ using ProgressItem = System.Collections.Generic.KeyValuePair<long, float>;
 
 namespace Progression.Extras
 {
-    /// <summary>
-    /// Calculates the "Estimated Time of Arrival", 
-    /// based on the rate of progress over time.
+    public interface IETACalculator
+    {
+        /// <summary> Clears all collected data.
+        /// </summary>
+        void Reset();
+
+        /// <summary> Updates the current progress.
+        /// </summary>
+        /// <param name="progress">The current level of completion.
+        /// Must be between 0.0 and 1.0 (inclusively).</param>
+        void Update(float progress);
+
+        /// <summary> Returns True when there is enough data to calculate the ETA.
+        /// Returns False if the ETA is still calculating.
+        /// </summary>
+        bool ETAIsAvailable { get; }
+
+        /// <summary> Calculates the Estimated Time of Arrival (Completion)
+        /// </summary>
+        DateTime ETA { get; }
+
+        /// <summary> Calculates the Estimated Time Remaining.
+        /// </summary>
+        TimeSpan ETR { get; }
+    }
+
+    /// <summary> Calculates the "Estimated Time of Arrival"
+    /// (or more accurately, "Estimated Time of Completion"),
+    /// based on a "rolling average" of progress over time.
     /// </summary>
-    public class ETACalculator 
+    public class ETACalculator : IETACalculator
     {
         /// <summary>
         /// </summary>
@@ -20,7 +46,7 @@ namespace Progression.Extras
         /// The minimum number of data points required before ETA can be calculated.
         /// </param>
         /// <param name="maximumDuration">
-        /// Determines how much calculation data can be stored.
+        /// Determines how many seconds of data will be used to calculate the ETA.
         /// </param>
         public ETACalculator(int minimumData, double maximumDuration)
         {
@@ -59,7 +85,7 @@ namespace Progression.Extras
         /// </summary>
         /// <param name="progress">The current level of completion.
         /// Must be between 0.0 and 1.0 (inclusively).</param>
-        public void Add(float progress)
+        public void Update(float progress)
         {
             // Clear space for this item:
             ClearExpired();
@@ -76,9 +102,9 @@ namespace Progression.Extras
             }
         }
 
-        /// <summary> Calculates the duration until the ETA
+        /// <summary> Calculates the Estimated Time Remaining
         /// </summary>
-        public TimeSpan CompletedIn
+        public TimeSpan ETR
         {
             get
             {
@@ -100,13 +126,13 @@ namespace Progression.Extras
             }
         }
 
-        /// <summary> Calculates the ETA
+        /// <summary> Calculates the Estimated Time of Arrival (Completion)
         /// </summary>
-        public DateTime CompletedAt
+        public DateTime ETA
         {
             get
             {
-                return DateTime.Now.Add(CompletedIn);
+                return DateTime.Now.Add(ETR);
             }
         }
         

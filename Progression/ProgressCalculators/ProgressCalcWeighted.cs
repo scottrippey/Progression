@@ -6,27 +6,27 @@ namespace Progression.ProgressCalculators
     /// Progress is calculated proportionally for each step.
     /// </summary>
     [DebuggerStepThrough]
-    public class ProgressCalcProportional : IProgressCalculator
+    public class ProgressCalcWeighted : IProgressCalculator
     {
-        public ProgressCalcProportional(float[] stepProportions)
+        public ProgressCalcWeighted(float[] stepWeights)
         {
             this.StepIndex = -1;
-            this.stepProportions = stepProportions;
+            this.StepWeights = stepWeights;
             // Calculate related properties:
             this.Completed = 0f;
             var total = 0f;
-            foreach (var p in stepProportions)
+            foreach (var p in stepWeights)
                 total += p;
             this.Total = total;
         }
 
         /// <summary> The index of the current step. </summary>
         public int StepIndex { get; private set; }
-        /// <summary>Step Proportions is a list of the relative proportion of each step.</summary>
-        protected readonly float[] stepProportions;
-        /// <summary> Contains the sum of all step proportions </summary>
+        /// <summary>Step Weights is a list of the relative weight of each step.</summary>
+        protected readonly float[] StepWeights;
+        /// <summary> Contains the sum of all step weights </summary>
         public float Total { get; private set; }
-        /// <summary> Contains the sum of all completed step proportions </summary>
+        /// <summary> Contains the sum of all completed step weights </summary>
         public float Completed { get; private set; }
 
         /// <summary> Advances the current progress task to the next step. </summary>
@@ -35,7 +35,7 @@ namespace Progression.ProgressCalculators
             // Increment the Completed amount:
             if (this.StepIndex >= 0)
             {
-                this.Completed += this.stepProportions[this.StepIndex];
+                this.Completed += this.StepWeights[this.StepIndex];
             }
             // Increment the current index:
             this.StepIndex++;
@@ -47,14 +47,14 @@ namespace Progression.ProgressCalculators
         {
             // Progressing through a list of items:
             float stepStart = this.Completed;
-            float stepLength = this.stepProportions[this.StepIndex];
+            float stepLength = this.StepWeights[this.StepIndex];
             float taskLength = this.Total;
             return (stepStart + stepProgress * stepLength) / taskLength;
         }
 
         public override string ToString()
         {
-            return string.Format("Step {0} of {1} (Completed {2:0.0} of {3:0.0})", StepIndex + 1, stepProportions.Length, Completed, Total);
+            return string.Format("Step {0} of {1} (Completed {2:0.0} of {3:0.0})", StepIndex + 1, StepWeights.Length, Completed, Total);
         }
     
     }
