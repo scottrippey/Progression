@@ -20,8 +20,6 @@ namespace Progression
 		
         /// <summary>The parent field is used to implement a self-maintained stack.</summary>
         private ProgressTask parent;
-        /// <summary>The child field is used to traverse the progress stack when calculating progress for a specific task (polling).</summary>
-        private ProgressTask child;
 
         /// <summary> Does the calculation. </summary>
         private IProgressCalculator calculator;
@@ -41,6 +39,15 @@ namespace Progression
         /// <summary> Indicates that this task has ended and is disposed </summary>
         private bool isEnded = false;
 
+        /// <summary> If polling isn't enabled, then progress calculation might be skipped. </summary>
+        private bool pollingEnabled;
+        /// <summary> If polling is enabled, this will hold the current progress info. </summary>
+        private ProgressChangedInfo currentProgress;
+        /// <summary> If polling is enabled, this will indicate whether the current progress has been accessed since last updated.
+        /// If it hasn't been accessed yet, it will only be updated with higher-priority events.
+        /// </summary>
+        private bool currentProgressAccessed;
+
         #endregion
 
         #region: Constructor :
@@ -54,7 +61,6 @@ namespace Progression
 
             // Push this new task on the top of the task stack:
             this.parent = currentTask;
-            if (currentTask != null) currentTask.child = this;
             currentTask = this;
 
             // Calculate the new maximum depth:
@@ -65,6 +71,24 @@ namespace Progression
             else
             {
                 this.maximumDepth = parent.maximumDepth - 1;
+            }
+        }
+
+        #endregion
+
+        #region: Properties :
+
+        /// <summary>
+        /// Retrieves the current task's progress.
+        /// This is only available if polling is enabled.
+        /// To enable polling, call <see cref="EnablePolling()" />.
+        /// </summary>
+        public ProgressChangedInfo CurrentProgress
+        {
+            get
+            {
+                currentProgressAccessed = true;
+                return currentProgress;
             }
         }
 
@@ -128,6 +152,39 @@ namespace Progression
             this.maximumDepth = maxDepth;
             return this;
         }
+        /// <summary> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". 
+        /// Returns the current progress task, so that methods may be chained.
+        /// </summary>
+        /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
+        public ProgressTask SetMaxDepth(int maxDepth)
+        {
+            this.maximumDepth = (ProgressDepth)maxDepth;
+            return this;
+        }
+
+        /// <summary>
+        /// Enables progress polling. 
+        /// Use <see cref="CurrentProgress"/> to retrieve the task's current progress. 
+        /// Returns the current progress task, so that methods may be chained.
+        /// </summary>
+        public ProgressTask EnablePolling()
+        {
+            EnablePolling(ProgressDepth.Unlimited);
+            return this;
+        }
+        /// <summary>
+        /// Enables progress polling. 
+        /// Use <see cref="CurrentProgress"/> to retrieve the task's current progress. 
+        /// Returns the current progress task, so that methods may be chained.
+        /// </summary>
+        public ProgressTask EnablePolling(ProgressDepth maximumDepth)
+        {
+            this.pollingEnabled = true;
+            this.currentProgressAccessed = true;
+            this.currentProgress = new ProgressChangedInfo(new ProgressInfo(0, null, null));
+            this.maximumDepth = maximumDepth;
+            return this;
+        }
 
         #endregion
 
@@ -144,24 +201,6 @@ namespace Progression
             // Fire the ProgressChanged event:
             this.OnProgressChanged();
         }
-        /// <summary> Advances the current progress task to the next step.
-        /// Fires ProgressChanged events.
-        /// 
-        /// This is useful for ProgressCalculators that require custom NextStep behavior,
-        /// such as the ProgressAmount calculator.
-        /// </summary>
-        public void NextStep<TCalc>(Action<TCalc> nextStep) where TCalc : class, IProgressCalculator
-        {
-            // Advance the current step:
-            nextStep(this.calculator as TCalc);
-
-            // Fire the ProgressChanged event:
-            this.OnProgressChanged();
-        }
-
-        #endregion
-
-        #region: Progress Calculation :
 
         /// <summary> Fires ProgressChanged events for the current task and all parent tasks
         /// </summary>
@@ -187,58 +226,39 @@ namespace Progression
 
                 allProgress.Push(new ProgressInfo(taskProgress, task.taskKey, task.taskArg));
 
+                // Raise events or update Polling:
+                ProgressChangedInfo progressChangedInfo = null;
                 // Raise the event if necessary:
                 if (task.progressChanged != null)
                 {
-                    var progressArgs = new ProgressChangedInfo(allProgress);
-                    task.progressChanged(progressArgs);
+                    progressChangedInfo = new ProgressChangedInfo(allProgress);
+                    task.progressChanged(progressChangedInfo);
+                }
+                // Update the CurrentProgress so that it can be used for polling.
+                if (task.pollingEnabled)
+                {
+                    // If the current CurrentProgress hasn't been accessed,
+                    // then we will only update if the new item is higher priority (lower depth):
+                    if (task.currentProgressAccessed || depth < (ProgressDepth)task.currentProgress.Count)
+                    {
+                        progressChangedInfo = progressChangedInfo ?? new ProgressChangedInfo(allProgress);
+
+                        task.currentProgressAccessed = false;
+                        task.currentProgress = progressChangedInfo;
+                    }
                 }
 
                 // Traverse the progress stack:
                 depth++;
                 task = task.parent;
 
-                // Determine if we've reached the bottom of the stack:
+                // Determine if we've reached the bottom of the stack or the maximum depth:
                 if (task == null || task.maximumDepth < depth)
                 {
                     break;
                 }
             }
 
-        }
-
-        /// <summary> Calculates the progress of the specified task.
-        /// This can be used to "poll" a task's progress.
-        /// This method is thread-safe.
-        /// </summary>
-        public ProgressChangedInfo CalculateProgress()
-        {
-            var depth = this.maximumDepth;
-
-            // Collect all tasks stacked on this baseTask:
-            // (this part needs to be thread safe)
-            var stack = new Stack<ProgressTask>((depth <= 0) ? 1 : (int)depth);
-            var task = this;
-            while (task != null && depth >= 0)
-            {
-                stack.Push(task);
-                depth--;
-                task = task.child; // Thread-safe?
-            }
-
-            // Calculate the progress:
-            var taskProgress = 0f;
-            var allProgress = new Stack<ProgressInfo>(stack.Count);
-            while (stack.Count > 0)
-            {
-                task = stack.Pop();
-
-                // Determine the current task's progress:
-                taskProgress = task.calculator.CalculateProgress(taskProgress);
-                allProgress.Push(new ProgressInfo(taskProgress, task.taskKey, task.taskArg));
-            }
-
-            return new ProgressChangedInfo(allProgress);
         }
 
         #endregion
@@ -274,15 +294,6 @@ namespace Progression
             if (this.isEnded) return;
             this.isEnded = true;
 
-            // Tasks should always be disposed, so there 
-            // shouldn't be any open "child" tasks,
-            // but just in case, let's clean them up:
-            if (this.child != null)
-            {
-                this.child.EndTask(false);
-                this.child = null;
-            }
-
             // Report the 100% progress:
             if (completedSuccessfully && this.maximumDepth > 0)
             {
@@ -301,7 +312,6 @@ namespace Progression
             {
                 // Pop the stack:
                 currentTask = this.parent;
-                if (currentTask != null) currentTask.child = null;
             } 
             else
             {

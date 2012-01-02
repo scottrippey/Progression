@@ -119,16 +119,6 @@ namespace Progression
         {
             GetCurrentTask().NextStep();
         }
-        /// <summary> Advances the current progress task to the next step.
-        /// Fires ProgressChanged events.
-        /// 
-        /// This is useful for ProgressCalculators that require custom NextStep behavior,
-        /// such as the ProgressAmount calculator.
-        /// </summary>
-        public static void NextStep<TCalc>(Action<TCalc> nextStep) where TCalc : class, IProgressCalculator
-        {
-            GetCurrentTask().NextStep(nextStep);
-        }
 
         #endregion
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using NUnit.Framework;
 
 namespace Progression.Tests
@@ -35,7 +36,7 @@ namespace Progression.Tests
         private void AssertProgressIsGrowing(ProgressChangedInfo p)
         {
             var newProgress = p.TotalProgress * 100;
-            Console.WriteLine("{0:00.00}% (+{1:0.00}%) - \"{2}\"", newProgress, newProgress - currentProgress, p[0].TaskKey);
+            //Console.WriteLine("{0:00.00}% (+{1:0.00}%) - \"{2}\"", newProgress, newProgress - currentProgress, p[0].TaskKey);
             Assert.GreaterOrEqual(newProgress, currentProgress);
             Assert.LessOrEqual(newProgress, 100f, "Progress during an unknown progress should never exceed 100% but is {0:000.00}%", newProgress);
             currentProgress = newProgress;
@@ -358,6 +359,52 @@ namespace Progression.Tests
             // Make sure the progress tasks are all disposed:
             Assert.IsNull(ProgressTask.CurrentTask);
         }
+
+        [Test]
+        public void Test_ThreadSafety()
+        {
+            currentProgress = -1;
+
+            ProgressTask progress = null;
+
+            // Create a background thread:
+            const int count = 10000000;
+            Action backgroundThread = () => {
+                using (progress = Progress.BeginFixedTask(count).EnablePolling((ProgressDepth) 4))
+                {
+                    for (int i = 0; i < count; i++)
+                    {
+                        Progress.NextStep();
+                        // Fake a sub-task that ends quickly:
+                        Progress.BeginFixedTask(2);
+                        Progress.NextStep();
+                        Progress.NextStep();
+                        Progress.EndTask();
+                    }
+                }
+            };
+
+            // Start the background thread:
+            var async = backgroundThread.BeginInvoke(null, null);
+
+            float totalProgress = 0;
+            while (progress == null)
+            {
+                Thread.Sleep(1);
+            }
+            while (totalProgress < 1.0)
+            {
+                var progressInfo = progress.CurrentProgress;
+                //var progressInfo = progress.CalculateProgress();
+                totalProgress = progressInfo.TotalProgress;
+                AssertProgressIsGrowing(progressInfo);
+            }
+
+            // Clean up
+            backgroundThread.EndInvoke(async);
+            
+        }
+
 
     }
 }
