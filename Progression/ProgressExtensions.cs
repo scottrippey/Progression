@@ -11,15 +11,8 @@ namespace Progression
     {
         #region: WithProgress methods :
 
-        // Note: These methods wrap an IEnumerable, monitoring progress as the object is enumerated.
+        // Note: These methods wrap an IEnumerable, monitoring progress as the sequence is enumerated.
 
-        /// <summary> Tracks progress as the source is enumerated. </summary>
-        /// <param name="source">The Count property will be used to calculate progress as items are enumerated.</param>
-        /// <param name="calculator">Any custom progress calculator</param>
-        public static ProgressEnumerator<T> WithProgress<T>(this IEnumerable<T> source, IProgressCalculator calculator)
-        {
-            return new ProgressEnumerator<T>(source, Progress.BeginCustomTask(calculator));
-        }
         /// <summary> Tracks progress as the source is enumerated. </summary>
         /// <param name="source">The Count property will be used to calculate progress as items are enumerated.</param>
         public static ProgressEnumerator<T> WithProgress<T>(this ICollection<T> source)
@@ -41,7 +34,7 @@ namespace Progression
         /// <param name="source"></param>
         /// <param name="stepWeights">
         /// Determines the weight of each step.
-        /// For example, the filesize of a copy operation.
+        /// For example, the file sizes of a copy operation.
         /// </param>
         public static ProgressEnumerator<T> WithProgress<T>(this IEnumerable<T> source, float[] stepWeights)
         {
@@ -73,13 +66,21 @@ namespace Progression
             return new ProgressEnumerator<T>(source, (sourceCollection != null) ? Progress.BeginFixedTask(sourceCollection.Count) : Progress.BeginUnknownTask(estimatedCount, estimatedWeight));
         }
 
+        /// <summary> Tracks progress as the source is enumerated. </summary>
+        /// <param name="source"></param>
+        /// <param name="calculator">A custom progress calculator</param>
+        public static ProgressEnumerator<T> WithProgress<T>(this IEnumerable<T> source, IProgressCalculator calculator)
+        {
+            return new ProgressEnumerator<T>(source, Progress.BeginCustomTask(calculator));
+        }
+
         #endregion
     }
 
     /// <summary> Wraps an enumerable source, reporting progress as the source is enumerated. </summary>
     /// <remarks>
     /// It would have been way easier to just use the "yield return" feature,
-    /// but this allows us to provide "chainable" methods
+    /// but this allows us to provide strongly-typed "chainable" methods
     /// such as SetCallback, SetMaxDepth, and SetTaskKey.
     /// </remarks>
     public class ProgressEnumerator<T> : IEnumerable<T>, IEnumerator<T>
@@ -198,4 +199,5 @@ namespace Progression
         #endregion
 
     }
+
 }
