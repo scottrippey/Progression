@@ -59,7 +59,7 @@ namespace Progression.Demo
                                new {ETA = eta2, Progress = progressBar2, Label = label2},
                                new {ETA = eta3, Progress = progressBar3, Label = label3},
                            };
-            for (int i = 0; i < p.Count; i++)
+            for (int i = 0; i <= p.CurrentDepth; i++)
             {
                 ui[i].ETA.Update(p[i].Progress);
                 ui[i].Progress.Value = p[i].Progress*100d;

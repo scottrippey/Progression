@@ -360,7 +360,7 @@ namespace Progression.Tests
             Assert.IsNull(ProgressTask.CurrentTask);
         }
 
-        [Test]
+        [Test, Explicit]
         public void Test_ThreadSafety()
         {
             currentProgress = -1;
@@ -368,7 +368,7 @@ namespace Progression.Tests
             ProgressTask progress = null;
 
             // Create a background thread:
-            const int count = 10000000;
+            const int count = 100000;
             Action backgroundThread = () => {
                 using (progress = Progress.BeginFixedTask(count).EnablePolling((ProgressDepth) 4))
                 {

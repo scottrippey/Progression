@@ -12,15 +12,18 @@ namespace Progression
     /// The first item (at index 0) is the base of the stack and contains the total progress.
     /// </summary>
     [DebuggerNonUserCode]
-    public class ProgressChangedInfo : List<ProgressInfo>
+    public class ProgressChangedInfo : IList<ProgressInfo>
     {
-        public ProgressChangedInfo(ProgressInfo progressInfo) : base(1)
+        private readonly List<ProgressInfo> items;
+        public ProgressChangedInfo(ProgressInfo progressInfo) 
         {
-            Add(progressInfo);
+            items = new List<ProgressInfo>(1);
+            items.Add(progressInfo);
         }
-        public ProgressChangedInfo(IEnumerable<ProgressInfo> allProgress) : base(allProgress)
+        public ProgressChangedInfo(IEnumerable<ProgressInfo> allProgress) 
         {
-            if (this.Count == 0) throw new ArgumentException("ProgressChangedInfo must contain at least 1 item!", "allProgress");
+            items = new List<ProgressInfo>(allProgress);
+            if (items.Count == 0) throw new ArgumentException("ProgressChangedInfo must contain at least 1 item!", "allProgress");
         }
 
         /// <summary> Contains the total progress of the base task, which includes the progress of all child tasks.
@@ -31,12 +34,85 @@ namespace Progression
         /// <summary>
         /// The task on the bottom of the stack.  This is the task with the callback.
         /// </summary>
-        public ProgressInfo BaseTask { get { return this[0]; } }
+        public ProgressInfo BaseTask { get { return items[0]; } }
 
         /// <summary>
         /// The task on the top of the stack.  This is the task that caused the event.
         /// </summary>
-        public ProgressInfo CurrentTask { get { return this[Count-1]; } }
+        public ProgressInfo CurrentTask { get { return items[items.Count-1]; } }
+
+        /// <summary>
+        /// the current number of nested tasks
+        /// </summary>
+        public int CurrentDepth {get { return items.Count - 1; } }
+
+        /// <summary>
+        /// Returns the ProgressInfo for the specified depth:
+        /// </summary>
+        /// <param name="depth"></param>
+        public ProgressInfo this[int depth]
+        {
+            get { return items[depth]; }
+        }
+
+        #region: IList explicit implementation :
+        // IList pass-through:
+        ProgressInfo IList<ProgressInfo>.this[int index]
+        {
+            get { return items[index]; }
+            set { throw new NotSupportedException(); }
+        }
+        IEnumerator<ProgressInfo> IEnumerable<ProgressInfo>.GetEnumerator()
+        {
+            return items.GetEnumerator();
+        }
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return items.GetEnumerator();
+        }
+        bool ICollection<ProgressInfo>.Contains(ProgressInfo item)
+        {
+            return items.Contains(item);
+        }
+        int IList<ProgressInfo>.IndexOf(ProgressInfo item)
+        {
+            return items.IndexOf(item);
+        }
+        void ICollection<ProgressInfo>.CopyTo(ProgressInfo[] array, int arrayIndex)
+        {
+            items.CopyTo(array, arrayIndex);
+        }
+        int ICollection<ProgressInfo>.Count
+        {
+            get { return items.Count; }
+        }
+        bool ICollection<ProgressInfo>.IsReadOnly
+        {
+            get { return true; }
+        }
+        // IList not supported:
+        void ICollection<ProgressInfo>.Add(ProgressInfo item)
+        {
+            throw new NotSupportedException();
+        }
+        void ICollection<ProgressInfo>.Clear()
+        {
+            throw new NotSupportedException();
+        }
+        bool ICollection<ProgressInfo>.Remove(ProgressInfo item)
+        {
+            throw new NotSupportedException();
+        }
+        void IList<ProgressInfo>.Insert(int index, ProgressInfo item)
+        {
+            throw new NotSupportedException();
+        }
+        void IList<ProgressInfo>.RemoveAt(int index)
+        {
+            throw new NotSupportedException();
+        }
+        #endregion
+
     }
 
     [DebuggerNonUserCode]

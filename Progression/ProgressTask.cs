@@ -239,7 +239,7 @@ namespace Progression
                 {
                     // If the current CurrentProgress hasn't been accessed,
                     // then we will only update if the new item is higher priority (lower depth):
-                    if (task.currentProgressAccessed || depth < (ProgressDepth)task.currentProgress.Count)
+                    if (task.currentProgressAccessed || (int)depth < task.currentProgress.CurrentDepth)
                     {
                         progressChangedInfo = progressChangedInfo ?? new ProgressChangedInfo(allProgress);
 
@@ -307,21 +307,14 @@ namespace Progression
             if (calcDispose != null) calcDispose.Dispose();
             this.calculator = null;
 
-            // Make sure "this" is on the top of the stack:
-            if (currentTask == this)
-            {
-                // Pop the stack:
-                currentTask = this.parent;
-            } 
-            else
-            {
-                // The only way this task wouldn't be on top of the stack
-                // is if dispose is being called by a different thread.
-                // Who would do such a thing?!?
-                throw new InvalidOperationException("Progress disposed by a thread other than the one that created it.");
-            }
+            // DEBUG: Make sure "this" is on the top of the stack:
+            // The only way this task wouldn't be on top of the stack
+            // is if dispose is being called by a different thread.
+            // Who would do such a thing?!?
+            Debug.Assert(currentTask == this, "Progress disposed by a thread other than the one that created it.");
 
-
+            // Pop the stack:
+            currentTask = this.parent;
         }
 
         #endregion
