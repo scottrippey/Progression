@@ -346,6 +346,9 @@ namespace Progression.Tests
                     Progress.BeginFixedTask(5);
                     Progress.NextStep();
 
+                    Progress.BeginFixedTask(5);
+                    Progress.NextStep();
+
                     throw new Exception("What happens if we don't use \"using\" blocks and we forget to call EndTask?");
 
                     Progress.EndTask();
@@ -355,6 +358,10 @@ namespace Progression.Tests
                 catch (Exception)
                 {
                 }
+
+                // Dispose the final task, 
+                // which should emit several warnings
+                // but will dispose all nested tasks.
             }
             
             // Make sure the progress tasks are all disposed:

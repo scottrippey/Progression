@@ -370,7 +370,12 @@ namespace Progression.Core
             // This might not be the case if you fail to dispose/end a task,
             // or if you dispose it from a thread other than the one that created it.
             // Who would do such a thing?!?
-            Debug.Assert(currentTask == this, "A Progress Task must be disposed from the thread that created it.");
+            while (currentTask != this && currentTask != null)
+            {
+                Debug.Write("Warning: a Progress Task was not properly disposed.");
+                currentTask.Dispose();
+            }
+            Debug.Assert(currentTask != null, "A Progress Task must be disposed from the thread that created it.");
 
             // Pop the stack:
             currentTask = this.parent;
