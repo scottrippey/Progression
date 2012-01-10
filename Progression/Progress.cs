@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Diagnostics;
+using Progression.Core;
 using Progression.ProgressCalculators;
 
 namespace Progression
 {
-    //[DebuggerStepThrough]
+    [DebuggerNonUserCode]
     public static class Progress 
     {
         #region: GetCurrentTask :

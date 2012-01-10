@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using NUnit.Framework;
+using Progression.Core;
 
 namespace Progression.Tests
 {
@@ -360,7 +361,7 @@ namespace Progression.Tests
             Assert.IsNull(ProgressTask.CurrentTask);
         }
 
-        [Test, Explicit]
+        [Test, Explicit("Testing thread safety is tough ... this test spawns 2 threads and runs them against each other.  Results might not be consistent.")]
         public void Test_ThreadSafety()
         {
             currentProgress = -1;
@@ -387,18 +388,41 @@ namespace Progression.Tests
             // Start the background thread:
             var async = backgroundThread.BeginInvoke(null, null);
 
-            float totalProgress = 0;
+            // Wait for the BG process to start:
             while (progress == null)
             {
                 Thread.Sleep(1);
             }
-            while (totalProgress < 1.0)
+
+            int maxDepth = -1;
+            int loops = 0;
+            float totalProgress = 0f;
+            while (totalProgress < 1.0f)
             {
                 var progressInfo = progress.CurrentProgress;
-                //var progressInfo = progress.CalculateProgress();
-                totalProgress = progressInfo.TotalProgress;
+
                 AssertProgressIsGrowing(progressInfo);
+                totalProgress = progressInfo.TotalProgress;
+                if (maxDepth < progressInfo.CurrentDepth)
+                {
+                    maxDepth = progressInfo.CurrentDepth;
+                }
+
+
+                loops++;
+                if (loops % 100 == 0)
+                {
+                    // Let the bg task queue up, 
+                    // and then make sure the CurrentDepth 
+                    // is zero:
+                    Thread.Sleep(10);
+                    progressInfo = progress.CurrentProgress;
+                    Assert.That(progressInfo.CurrentDepth, Is.EqualTo(0));
+                }
             }
+
+            // Make sure that we received at least 1 nested event:
+            Assert.That(maxDepth, Is.EqualTo(1));
 
             // Clean up
             backgroundThread.EndInvoke(async);

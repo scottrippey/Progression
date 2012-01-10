@@ -5,7 +5,7 @@ namespace Progression.ProgressCalculators
     /// <summary> Represents a task with a specific number of steps.
     /// Progress is calculated proportionally for each step.
     /// </summary>
-    [DebuggerStepThrough]
+    [DebuggerNonUserCode]
     public class ProgressCalcWeighted : IProgressCalculator
     {
         public ProgressCalcWeighted(float[] stepWeights)

@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace Progression
+namespace Progression.Core
 {
     public delegate void ProgressChangedHandler(ProgressChangedInfo progressChangedInfo);
 

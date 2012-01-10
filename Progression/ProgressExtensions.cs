@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Progression.Core;
 using Progression.ProgressCalculators;
 
 namespace Progression

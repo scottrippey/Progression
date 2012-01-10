@@ -7,7 +7,7 @@ namespace Progression.ProgressCalculators
     /// As steps complete, progress gets closer to 100%,
     /// but never actually reaches it until the task completes.
     /// </summary>
-    [DebuggerStepThrough]
+    [DebuggerNonUserCode]
     public class ProgressCalcUnknown : IProgressCalculator
     {
         /// <summary> </summary>

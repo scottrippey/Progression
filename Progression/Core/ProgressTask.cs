@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Progression.ProgressCalculators;
 
-namespace Progression
+namespace Progression.Core
 {
-    //[DebuggerStepThrough]
+    [DebuggerNonUserCode]
     public sealed class ProgressTask : IDisposable
     {
         #region: Internal ThreadStatic Stack :

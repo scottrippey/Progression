@@ -4,7 +4,7 @@ namespace Progression.ProgressCalculators
 {
     /// <summary> Represents a task with a specific number of steps. 
     /// </summary>
-    [DebuggerStepThrough]
+    [DebuggerNonUserCode]
     public class ProgressCalcFixed : IProgressCalculator
     {
         public ProgressCalcFixed(int stepCount)

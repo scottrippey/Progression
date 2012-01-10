@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Progression
+﻿namespace Progression.Core
 {
     /// <summary> 
-    /// An integer value that determines 
+    /// Any integer value that determines 
     /// the maximum number of nested progress tasks. 
     /// Progress reported at deeper levels will be ignored. 
     /// All negative values are equivalent to "Auto".
