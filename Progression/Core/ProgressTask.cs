@@ -19,7 +19,7 @@ namespace Progression.Core
         #region: Fields :
 		
         /// <summary>The parent field is used to implement a self-maintained stack.</summary>
-        private ProgressTask parent;
+        private readonly ProgressTask parent;
 
         /// <summary> Does the calculation. </summary>
         private IProgressCalculator calculator;
@@ -27,9 +27,12 @@ namespace Progression.Core
         /// <summary> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </summary>
         private ProgressDepth maximumDepth;
         /// <summary> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </summary>
-        public ProgressDepth MaximumDepth { get { return maximumDepth; } }
+        public ProgressDepth MaximumDepth { get { return maximumDepth; } set { maximumDepth = value; } }
         /// <summary> The callback that is fired when progress changes </summary>
         private event ProgressChangedHandler progressChanged;
+        /// <summary> The callback that is fired when progress ends (successfully or not) </summary>
+        private event ProgressChangedHandler progressEnded;
+
 
         /// <summary> The name of the task </summary>
         private string taskKey;
@@ -74,6 +77,20 @@ namespace Progression.Core
             }
         }
 
+        #endregion
+
+        #region: ProgressStarted Static Event :
+
+        public delegate void ProgressStartedHandler(ProgressTask progressTask);
+        /// <summary>
+        /// This event will fire every time a task is started on any thread.
+        /// It fires as soon as the TaskKey is set.
+        /// This allows other threads to "monitor" when a background thread
+        /// starts a task.
+        /// The event won't fire for tasks that don't have a TaskKey.
+        /// </summary>
+        public static event ProgressStartedHandler ProgressStarting;
+        
         #endregion
 
         #region: Properties :
@@ -122,6 +139,19 @@ namespace Progression.Core
             return this;
         }
 
+        /// <summary>
+        /// Attaches the callback to fire when the progress task ends (successfully or not).
+        /// 
+        /// This is usually attached at the beginning of the task.
+        /// Returns the current progress task, so that methods may be chained.
+        /// </summary>
+        /// <param name="callback">Attach a callback to the ProgressEnded event</param>
+        public ProgressTask SetCallbackEnded(ProgressChangedHandler callback)
+        {
+            this.progressEnded += callback;
+            return this;
+        }
+
         /// <summary> Changes the current task's TaskKey. 
         /// Returns the current progress task, so that methods may be chained.
         /// </summary>
@@ -129,6 +159,12 @@ namespace Progression.Core
         public ProgressTask SetTaskKey(string newTaskKey)
         {
             this.taskKey = newTaskKey;
+            
+            // Fire the ProgressStarting event:
+            if (ProgressStarting != null)
+            {
+                ProgressStarting(this);
+            }
             return this;
         }
         /// <summary> Changes the current task's TaskKey. 
@@ -140,6 +176,12 @@ namespace Progression.Core
         {
             this.taskKey = newTaskKey;
             this.taskArg = newTaskArg;
+
+            // Fire the ProgressStarting event:
+            if (ProgressStarting != null)
+            {
+                ProgressStarting(this);
+            }
             return this;
         }
 
@@ -181,7 +223,7 @@ namespace Progression.Core
         {
             this.pollingEnabled = true;
             this.currentProgressAccessed = true;
-            this.currentProgress = new ProgressChangedInfo(new ProgressInfo(0, null, null));
+            this.currentProgress = new ProgressChangedInfo(new ProgressInfo(0f, null, null), null);
             this.maximumDepth = maximumDepth;
             return this;
         }
@@ -191,20 +233,28 @@ namespace Progression.Core
         #region: NextStep :
 
         /// <summary> Advances the current progress task to the next step.
-        /// Fires ProgressChanged events.
+        /// Fires the <see cref="progressChanged"/> callback.
         /// </summary>
         public void NextStep()
+        {
+            NextStep(null);
+        }
+        /// <summary> Advances the current progress task to the next step.
+        /// Fires the <see cref="progressChanged"/> callback.
+        /// </summary>
+        /// <param name="currentStepArg">This argument will be passed to the event handler.  Default is <code>null</code>.</param>
+        public void NextStep(object currentStepArg)
         {
             // Advance the current step:
             this.calculator.NextStep();
 
             // Fire the ProgressChanged event:
-            this.OnProgressChanged();
+            this.OnProgressChanged(currentStepArg);
         }
 
         /// <summary> Fires ProgressChanged events for the current task and all parent tasks
         /// </summary>
-        private void OnProgressChanged()
+        private void OnProgressChanged(object currentStepArg)
         {
             // Fire the ProgressChanged event for this and all parent items:
 
@@ -231,7 +281,7 @@ namespace Progression.Core
                 // Raise the event if necessary:
                 if (task.progressChanged != null)
                 {
-                    progressChangedInfo = new ProgressChangedInfo(allProgress);
+                    progressChangedInfo = new ProgressChangedInfo(allProgress, currentStepArg);
                     task.progressChanged(progressChangedInfo);
                 }
                 // Update the CurrentProgress so that it can be used for polling.
@@ -241,7 +291,10 @@ namespace Progression.Core
                     // then we will only update if the new item is higher priority (lower depth):
                     if (task.currentProgressAccessed || (int)depth < task.currentProgress.CurrentDepth)
                     {
-                        progressChangedInfo = progressChangedInfo ?? new ProgressChangedInfo(allProgress);
+                        if (progressChangedInfo == null)
+                        {
+                            progressChangedInfo = new ProgressChangedInfo(allProgress, currentStepArg);
+                        }
 
                         task.currentProgressAccessed = false;
                         task.currentProgress = progressChangedInfo;
@@ -295,23 +348,29 @@ namespace Progression.Core
             this.isEnded = true;
 
             // Report the 100% progress:
-            if (completedSuccessfully && this.maximumDepth > 0)
+            if (completedSuccessfully)
             {
-                this.OnProgressChanged();
+                this.OnProgressChanged(null);
+            }
+            // Report the progress Ended:
+            if (this.progressEnded != null)
+            {
+                this.progressEnded(new ProgressChangedInfo(new ProgressInfo(100f, taskKey, taskArg), null));
+                this.progressEnded = null;
             }
 
             // Clear handlers:
             this.progressChanged = null;
-            // Clear calculator:
+            // Clear calculator: (dispose if possible)
             var calcDispose = this.calculator as IDisposable;
             if (calcDispose != null) calcDispose.Dispose();
             this.calculator = null;
 
-            // DEBUG: Make sure "this" is on the top of the stack:
-            // The only way this task wouldn't be on top of the stack
-            // is if dispose is being called by a different thread.
+            // DEBUG: Make sure "this" is on the top of the stack.
+            // This might not be the case if you fail to dispose/end a task,
+            // or if you dispose it from a thread other than the one that created it.
             // Who would do such a thing?!?
-            Debug.Assert(currentTask == this, "Progress disposed by a thread other than the one that created it.");
+            Debug.Assert(currentTask == this, "A Progress Task must be disposed from the thread that created it.");
 
             // Pop the stack:
             currentTask = this.parent;

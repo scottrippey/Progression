@@ -10,20 +10,25 @@ namespace Progression.Core
     /// <summary>
     /// Represents the calculated progress of the progress stack.
     /// The first item (at index 0) is the base of the stack and contains the total progress.
+    /// 
+    /// This class is immutable, and therefore thread-safe.
     /// </summary>
     [DebuggerNonUserCode]
     public class ProgressChangedInfo : IList<ProgressInfo>
     {
         private readonly List<ProgressInfo> items;
-        public ProgressChangedInfo(ProgressInfo progressInfo) 
+        private readonly object currentStepArg;
+        public ProgressChangedInfo(ProgressInfo progressInfo, object currentStepArg) 
         {
             items = new List<ProgressInfo>(1);
             items.Add(progressInfo);
+            this.currentStepArg = currentStepArg;
         }
-        public ProgressChangedInfo(IEnumerable<ProgressInfo> allProgress) 
+        public ProgressChangedInfo(IEnumerable<ProgressInfo> allProgress, object currentStepArg) 
         {
             items = new List<ProgressInfo>(allProgress);
             if (items.Count == 0) throw new ArgumentException("ProgressChangedInfo must contain at least 1 item!", "allProgress");
+            this.currentStepArg = currentStepArg;
         }
 
         /// <summary> Contains the total progress of the base task, which includes the progress of all child tasks.
@@ -31,23 +36,23 @@ namespace Progression.Core
         /// </summary>
         public float TotalProgress { get { return this[0].Progress; } }
 
-        /// <summary>
-        /// The task on the bottom of the stack.  This is the task with the callback.
+        /// <summary> The task on the bottom of the stack.  This is the task with the callback.
         /// </summary>
         public ProgressInfo BaseTask { get { return items[0]; } }
 
-        /// <summary>
-        /// The task on the top of the stack.  This is the task that caused the event.
+        /// <summary> The task on the top of the stack.  This is the task that caused the event.
         /// </summary>
         public ProgressInfo CurrentTask { get { return items[items.Count-1]; } }
 
-        /// <summary>
-        /// the current number of nested tasks
+        /// <summary> The current number of nested tasks
         /// </summary>
-        public int CurrentDepth {get { return items.Count - 1; } }
+        public int CurrentDepth { get { return items.Count - 1; } }
 
-        /// <summary>
-        /// Returns the ProgressInfo for the specified depth:
+        /// <summary>Provides additional info about the task being performed
+        /// </summary>
+        public object CurrentStepArg { get { return currentStepArg; } }
+
+        /// <summary> Returns the ProgressInfo for the specified depth:
         /// </summary>
         /// <param name="depth"></param>
         public ProgressInfo this[int depth]
@@ -127,7 +132,7 @@ namespace Progression.Core
         /// <summary> The total progress of this task, which incorporates the progress of sub-tasks.
         /// </summary>
         public float Progress { get; private set; }
-        /// <summary> Identifies the task being performed.  Can be used for displaying progress.
+        /// <summary> Identifies the task being performed.  
         /// </summary>
         public string TaskKey { get; private set; }
         /// <summary>Provides additional info about the task being performed

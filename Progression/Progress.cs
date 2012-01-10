@@ -8,6 +8,7 @@ namespace Progression
     [DebuggerNonUserCode]
     public static class Progress 
     {
+
         #region: GetCurrentTask :
 
         /// <summary> Returns the top of the Progress stack.
