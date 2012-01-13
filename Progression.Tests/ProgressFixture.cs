@@ -43,16 +43,6 @@ namespace Progression.Tests
             currentProgress = newProgress;
         }
 
-
-        private int[] tenItems
-        {
-            get
-            {
-                return new[]{1,2,3,4,5,6,7,8,9,10};
-            }
-        }
-
-
         [Test]
         public void TestNormal()
         {
@@ -306,6 +296,7 @@ namespace Progression.Tests
             try
             {
                 currentProgress = -1;
+                var tenItems = new[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
                 foreach (var i in tenItems.WithProgress().SetCallback(AssertProgressIsGrowing))
                 {
                     foreach (var j in tenItems.WithProgress())
