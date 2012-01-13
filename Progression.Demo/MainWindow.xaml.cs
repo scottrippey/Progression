@@ -11,6 +11,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Progression.Core;
 using Progression.Extras;
 
 namespace Progression.Demo
@@ -83,7 +84,7 @@ namespace Progression.Demo
             while (true)
             {
                 Dispatcher.Invoke((Action)ProgressReset);
-                using (Progress.BeginFixedTask(primary).SetTaskKey("Primary").SetCallback((p)=> Dispatcher.Invoke((ProgressChangedHandler)ProgressChanged, p)))
+                using (Progress.BeginFixedTask(primary).SetTaskKey("Primary").SetCallback((p)=> Dispatcher.Invoke((ProgressChangedCallback)ProgressChanged, p)))
                 {
                     for (int i = 0; i < primary; i++)
                     {
