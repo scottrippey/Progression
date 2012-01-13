@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Progression.Core
 {
-    public delegate void ProgressChangedHandler(ProgressChangedInfo progressChangedInfo);
+    public delegate void ProgressChangedCallback(ProgressChangedInfo progressChangedInfo);
 
     /// <summary>
     /// Represents the calculated progress of the progress stack.

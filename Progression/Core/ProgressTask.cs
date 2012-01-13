@@ -29,9 +29,9 @@ namespace Progression.Core
         /// <summary> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </summary>
         public ProgressDepth MaximumDepth { get { return maximumDepth; } set { maximumDepth = value; } }
         /// <summary> The callback that is fired when progress changes </summary>
-        private event ProgressChangedHandler progressChanged;
+        private event ProgressChangedCallback progressChangedCallback;
         /// <summary> The callback that is fired when progress ends (successfully or not) </summary>
-        private event ProgressChangedHandler progressEnded;
+        private event ProgressChangedCallback progressEndedCallback;
 
 
         /// <summary> The name of the task </summary>
@@ -81,7 +81,7 @@ namespace Progression.Core
 
         #region: ProgressStarted Static Event :
 
-        public delegate void ProgressStartedHandler(ProgressTask progressTask);
+        public delegate void ProgressStartingHandler(ProgressTask progressTask);
         /// <summary>
         /// This event will fire every time a task is started on any thread.
         /// It fires as soon as the TaskKey is set.
@@ -89,7 +89,7 @@ namespace Progression.Core
         /// starts a task.
         /// The event won't fire for tasks that don't have a TaskKey.
         /// </summary>
-        public static event ProgressStartedHandler ProgressStarting;
+        public static event ProgressStartingHandler ProgressStarting;
         
         #endregion
 
@@ -119,9 +119,9 @@ namespace Progression.Core
         /// Returns the current progress task, so that methods may be chained.
         /// </summary>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        public ProgressTask SetCallback(ProgressChangedHandler callback)
+        public ProgressTask SetCallback(ProgressChangedCallback callback)
         {
-            this.progressChanged += callback;
+            this.progressChangedCallback += callback;
             this.maximumDepth = ProgressDepth.Unlimited;
             return this;
         }
@@ -132,9 +132,9 @@ namespace Progression.Core
         /// </summary>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
         /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
-        public ProgressTask SetCallback(ProgressChangedHandler callback, ProgressDepth maxDepth)
+        public ProgressTask SetCallback(ProgressChangedCallback callback, ProgressDepth maxDepth)
         {
-            this.progressChanged += callback;
+            this.progressChangedCallback += callback;
             this.maximumDepth = maxDepth;
             return this;
         }
@@ -146,9 +146,9 @@ namespace Progression.Core
         /// Returns the current progress task, so that methods may be chained.
         /// </summary>
         /// <param name="callback">Attach a callback to the ProgressEnded event</param>
-        public ProgressTask SetCallbackEnded(ProgressChangedHandler callback)
+        public ProgressTask SetCallbackEnded(ProgressChangedCallback callback)
         {
-            this.progressEnded += callback;
+            this.progressEndedCallback += callback;
             return this;
         }
 
@@ -235,16 +235,16 @@ namespace Progression.Core
         #region: NextStep :
 
         /// <summary> Advances the current progress task to the next step.
-        /// Fires the <see cref="progressChanged"/> callback.
+        /// Fires the <see cref="progressChangedCallback"/> callback.
         /// </summary>
         public void NextStep()
         {
             NextStep(null);
         }
         /// <summary> Advances the current progress task to the next step.
-        /// Fires the <see cref="progressChanged"/> callback.
+        /// Fires the <see cref="progressChangedCallback"/> callback.
         /// </summary>
-        /// <param name="currentStepArg">This argument will be passed to the event handler.  Default is <code>null</code>.</param>
+        /// <param name="currentStepArg">This argument will be passed to the callback.  Default is <code>null</code>.</param>
         public void NextStep(object currentStepArg)
         {
             // Advance the current step:
@@ -277,7 +277,7 @@ namespace Progression.Core
                 }
 
                 // Check for a callback:
-                if (task.progressChanged != null)
+                if (task.progressChangedCallback != null)
                 {
                     break;
                 }
@@ -315,10 +315,10 @@ namespace Progression.Core
                 // Raise events or update Polling:
                 ProgressChangedInfo progressChangedInfo = null;
                 // Raise the event if necessary:
-                if (task.progressChanged != null)
+                if (task.progressChangedCallback != null)
                 {
                     progressChangedInfo = new ProgressChangedInfo(allProgress, currentStepArg);
-                    task.progressChanged(progressChangedInfo);
+                    task.progressChangedCallback(progressChangedInfo);
                 }
                 // Update the CurrentProgress so that it can be used for polling.
                 if (task.pollingEnabled)
@@ -389,14 +389,14 @@ namespace Progression.Core
                 this.OnProgressChanged(null);
             }
             // Report the progress Ended:
-            if (this.progressEnded != null)
+            if (this.progressEndedCallback != null)
             {
-                this.progressEnded(new ProgressChangedInfo(new ProgressInfo(100f, taskKey, taskArg), null));
-                this.progressEnded = null;
+                this.progressEndedCallback(new ProgressChangedInfo(new ProgressInfo(100f, taskKey, taskArg), null));
+                this.progressEndedCallback = null;
             }
 
-            // Clear handlers:
-            this.progressChanged = null;
+            // Clear events:
+            this.progressChangedCallback = null;
             // Clear calculator: (dispose if possible)
             var calcDispose = this.calculator as IDisposable;
             if (calcDispose != null) calcDispose.Dispose();

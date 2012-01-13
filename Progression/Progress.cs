@@ -81,7 +81,7 @@ namespace Progression
         /// </summary>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
         /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
-        public static ProgressTask SetCallback(ProgressChangedHandler callback, ProgressDepth maxDepth)
+        public static ProgressTask SetCallback(ProgressChangedCallback callback, ProgressDepth maxDepth)
         {
             return GetCurrentTask().SetCallback(callback, maxDepth);
         }

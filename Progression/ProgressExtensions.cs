@@ -151,7 +151,7 @@ namespace Progression
         /// Returns the current progress task, so that methods may be chained.
         /// </summary>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
-        public ProgressEnumerator<T> SetCallback(ProgressChangedHandler callback)
+        public ProgressEnumerator<T> SetCallback(ProgressChangedCallback callback)
         {
             progress.SetCallback(callback);
             return this;
@@ -163,7 +163,7 @@ namespace Progression
         /// </summary>
         /// <param name="callback">Attach a callback to the ProgressChanged event</param>
         /// <param name="maxDepth"> An integer value that determines the maximum number of nested progress tasks. Progress reported at deeper levels will be ignored. All negative values are equivalent to "Auto". </param>
-        public ProgressEnumerator<T> SetCallback(ProgressChangedHandler callback, ProgressDepth maxDepth)
+        public ProgressEnumerator<T> SetCallback(ProgressChangedCallback callback, ProgressDepth maxDepth)
         {
             progress.SetCallback(callback, maxDepth);
             return this;

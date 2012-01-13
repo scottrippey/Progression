@@ -264,7 +264,7 @@ namespace Progression.Tests
         public void TestCallbackDepth()
         {
             var justFine = false;
-            ProgressChangedHandler callback = (p) =>{
+            ProgressChangedCallback callback = (p) =>{
                                                   if (p.Any(pi => pi.TaskKey == "Too Deep!")) 
                                                       Assert.Fail("'Too Deep!' invoked a callback!");
                                                   if (p.Any(pi => pi.TaskKey == "Just fine"))
