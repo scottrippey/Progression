@@ -153,6 +153,7 @@ namespace Progression.Core
         }
 
         /// <summary> Changes the current task's TaskKey. 
+        /// This should only be called once per Task.
         /// Returns the current progress task, so that methods may be chained.
         /// </summary>
         /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
@@ -168,6 +169,7 @@ namespace Progression.Core
             return this;
         }
         /// <summary> Changes the current task's TaskKey. 
+        /// This should only be called once per Task.
         /// Returns the current progress task, so that methods may be chained.
         /// </summary>
         /// <param name="newTaskKey">Identifies the task being performed.  Can be used for displaying progress.</param>
@@ -252,20 +254,54 @@ namespace Progression.Core
             this.OnProgressChanged(currentStepArg);
         }
 
-        /// <summary> Fires ProgressChanged events for the current task and all parent tasks
+        /// <summary> 
+        /// Calculates the current progress, 
+        /// and invokes the callback for the 
+        /// current task and all parent tasks.
         /// </summary>
         private void OnProgressChanged(object currentStepArg)
         {
-            // Fire the ProgressChanged event for this and all parent items:
+            // First, an optimization: 
+            // we might not need to calculate progress at all,
+            // if no one is listening:
+            ProgressDepth depth = 0;
+            var task = this;
+            while (true)
+            {
+                // Determine if we've reached the bottom of the stack or the maximum depth:
+                if (task == null || task.maximumDepth < depth)
+                {
+                    // No one's listening this deep!
+                    // Skip calculations.
+                    return;
+                }
 
-            // (Skip if the current depth is too deep)
-            if (this.maximumDepth <= ProgressDepth.Auto) return;
+                // Check for a callback:
+                if (task.progressChanged != null)
+                {
+                    break;
+                }
+                // Check for polling:
+                if (task.pollingEnabled)
+                {
+                    if (task.currentProgressAccessed || (int)depth < task.currentProgress.CurrentDepth)
+                    {
+                        // Polling is enabled and is ready for a new CurrentProgress.
+                        break;
+                    }
+                }
+
+                // Traverse the progress stack:
+                depth++;
+                task = task.parent;
+            }
+
+
+            depth = 0;
+            task = this;
 
             var taskProgress = 0.0f;
-            ProgressDepth depth = 0;
             var allProgress = new Stack<ProgressInfo>();
-
-            var task = this;
             while (true)
             {
                 // Calculate the task's progress:
