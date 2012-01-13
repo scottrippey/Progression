@@ -26,21 +26,32 @@ namespace Progression.Demo
             InitializeComponent();
         }
 
+        public ProgressWatcher ProgressWatcher;
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             // Start a background thread:
             Action background = BackgroundTask;
             background.BeginInvoke(null, null);
+
+            // Set up the watcher:
+            this.ProgressWatcher = new ProgressWatcher();
+            this.ProgressWatcher.TaskKey = "Primary";
+            this.ProgressWatcher.ProgressChanged += ProgressWatcher_ProgressChanged;
         }
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             this.isExiting = true;
+            this.ProgressWatcher.Dispose();
         }
 
         private ETACalculator eta1 = new ETACalculator(2,3.0);
         private ETACalculator eta2 = new ETACalculator(2,3.0);
         private ETACalculator eta3 = new ETACalculator(2,3.0);
 
+        public void ProgressWatcher_ProgressChanged(object sender, ProgressChangedInfo p)
+        {
+            ProgressChanged(p);
+        }
         public void ProgressChanged(ProgressChangedInfo p)
         {
             var c = p.CurrentTask;
@@ -83,8 +94,8 @@ namespace Progression.Demo
             const int third = 10;
             while (true)
             {
-                Dispatcher.Invoke((Action)ProgressReset);
-                using (Progress.BeginFixedTask(primary).SetTaskKey("Primary").SetCallback((p)=> Dispatcher.Invoke((ProgressChangedCallback)ProgressChanged, p)))
+                //Dispatcher.Invoke((Action)ProgressReset);
+                using (Progress.BeginFixedTask(primary).SetTaskKey("Primary"))
                 {
                     for (int i = 0; i < primary; i++)
                     {
@@ -135,6 +146,7 @@ namespace Progression.Demo
         {
             this.delay = (int) ((2000 - slider1.Value));
         }
+
 
     }
 }

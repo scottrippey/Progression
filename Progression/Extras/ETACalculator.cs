@@ -87,6 +87,12 @@ namespace Progression.Extras
         /// Must be between 0.0 and 1.0 (inclusively).</param>
         public void Update(float progress)
         {
+            // If progress hasn't changed, ignore:
+            if (this.current.Value == progress)
+            {
+                return;
+            }
+
             // Clear space for this item:
             ClearExpired();
 

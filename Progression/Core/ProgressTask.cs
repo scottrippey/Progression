@@ -5,7 +5,6 @@ using Progression.ProgressCalculators;
 
 namespace Progression.Core
 {
-    [DebuggerNonUserCode]
     public sealed class ProgressTask : IDisposable
     {
         #region: Internal ThreadStatic Stack :
@@ -79,7 +78,7 @@ namespace Progression.Core
 
         #endregion
 
-        #region: ProgressStarted Static Event :
+        #region: ProgressStarting Static Event :
 
         public delegate void ProgressStartingHandler(ProgressTask progressTask);
         /// <summary>
@@ -108,6 +107,12 @@ namespace Progression.Core
                 return currentProgress;
             }
         }
+
+        /// <summary>
+        /// A string that uniquely identifies this task.
+        /// </summary>
+        public string TaskKey { get { return taskKey; } }
+
 
         #endregion
 
@@ -223,10 +228,21 @@ namespace Progression.Core
         /// </summary>
         public ProgressTask EnablePolling(ProgressDepth maximumDepth)
         {
+            EnablePolling((int) maximumDepth);
+            return this;
+        }
+
+        /// <summary>
+        /// Enables progress polling. 
+        /// Use <see cref="CurrentProgress"/> to retrieve the task's current progress. 
+        /// Returns the current progress task, so that methods may be chained.
+        /// </summary>
+        public ProgressTask EnablePolling(int maximumDepth)
+        {
             this.pollingEnabled = true;
             this.currentProgressAccessed = true;
             this.currentProgress = new ProgressChangedInfo(new ProgressInfo(0f, null, null), null);
-            this.maximumDepth = maximumDepth;
+            this.maximumDepth = (ProgressDepth)maximumDepth;
             return this;
         }
 

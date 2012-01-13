@@ -5,19 +5,19 @@
     <Grid>
         <GroupBox Header="Primary Task" Height="74" Margin="12,12,12,0" Name="groupBox1" VerticalAlignment="Top">
             <Grid>
-                <Label Content="Label" Margin="6,28,6,0" Name="label1" VerticalAlignment="Top" />
+                <Label Content="% done" Margin="6,28,6,0" Name="label1" VerticalAlignment="Top" />
                 <ProgressBar Height="16" Margin="6,6,6,0" Name="progressBar1" VerticalAlignment="Top" />
             </Grid>
         </GroupBox>
         <GroupBox Header="Second Task" Height="74" Margin="12,92,12,0" Name="groupBox2" VerticalAlignment="Top">
             <Grid>
-                <Label Content="Label" Margin="6,28,6,0" Name="label2" VerticalAlignment="Top" />
+                <Label Content="% done" Margin="6,28,6,0" Name="label2" VerticalAlignment="Top" />
                 <ProgressBar Height="16" Margin="6,6,6,0" Name="progressBar2" VerticalAlignment="Top" />
             </Grid>
         </GroupBox>
         <GroupBox Header="Third Task" Height="115" Margin="12,172,12,0" Name="groupBox3" VerticalAlignment="Top">
             <Grid>
-                <Label Content="Label" Margin="6,28,6,0" Name="label3" VerticalAlignment="Top" />
+                <Label Content="% done" Margin="6,28,6,0" Name="label3" VerticalAlignment="Top" />
                 <ProgressBar Height="16" Margin="6,6,6,0" Name="progressBar3" VerticalAlignment="Top" />
                 <Label Content="Speed:" Margin="6,56,0,0" Name="label4" VerticalAlignment="Top" HorizontalAlignment="Left" />
                 <Slider Height="36" Margin="57,56,6,0" Name="slider1" VerticalAlignment="Top" AutoToolTipPlacement="BottomRight" Maximum="2000" Minimum="1" SmallChange="10" LargeChange="100" TickFrequency="100" TickPlacement="BottomRight" Value="1900" ValueChanged="slider1_ValueChanged" />
